@@ -1,5 +1,3 @@
-// import Image from 'next/image';
-import Link from 'next/link';
 import React from 'react';
 import ProductList from './ProductList';
 import HamburgerMenu from './mobile/HamburgerMenu';

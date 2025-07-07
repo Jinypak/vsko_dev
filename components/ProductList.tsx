@@ -30,6 +30,9 @@ const ProductList = () => {
         <NavigationMenuItem>
           <NavigationMenuLink href="/contact">Contact</NavigationMenuLink>
         </NavigationMenuItem>
+        <NavigationMenuItem>
+          <NavigationMenuLink href="/auth/sign-in">Login</NavigationMenuLink>
+        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   );
