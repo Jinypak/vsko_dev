@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AdminDashboardNav from '@/components/admin/AdminDashboardNav';
-import { customers } from '@/lib/admin-data';
+import { getCustomerRepository } from '@/lib/data/customer-repository';
 import { Badge } from '@/components/ui/badge';
 import CustomerDetailEditor from './CustomerDetailEditor';
 
@@ -11,7 +11,8 @@ export default async function CustomerDetailPage({
   params: Promise<{ customerId: string }>;
 }) {
   const { customerId } = await params;
-  const customer = customers.find((item) => item.id === customerId);
+  const repository = getCustomerRepository();
+  const customer = await repository.getById(customerId);
 
   if (!customer) notFound();
 

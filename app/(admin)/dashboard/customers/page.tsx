@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import AdminDashboardNav from '@/components/admin/AdminDashboardNav';
-import { customers } from '@/lib/admin-data';
+import { getCustomerRepository } from '@/lib/data/customer-repository';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +14,8 @@ export default async function CustomerListPage({
   const params = await searchParams;
   const query = (params.q ?? '').trim();
 
-  const filteredCustomers = query
-    ? customers.filter((customer) => customer.name.toLowerCase().includes(query.toLowerCase()))
-    : customers;
+  const repository = getCustomerRepository();
+  const filteredCustomers = await repository.list(query);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-12">

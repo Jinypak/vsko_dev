@@ -11,27 +11,64 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
   const [draft, setDraft] = useState(customer);
   const [newHistoryTitle, setNewHistoryTitle] = useState('');
   const [newHistoryNote, setNewHistoryNote] = useState('');
+  const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const serialText = useMemo(() => draft.serials.join(', '), [draft.serials]);
 
-  const addHistory = () => {
+  const saveChanges = async () => {
+    setLoading(true);
+    setStatus('');
+    try {
+      const response = await fetch(`/api/admin/customers/${draft.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hsmCount: draft.hsmCount,
+          model: draft.model,
+          engineer: draft.engineer,
+          serials: draft.serials,
+          contacts: draft.contacts,
+        }),
+      });
+
+      if (!response.ok) {
+        setStatus('저장에 실패했습니다.');
+        return;
+      }
+
+      setStatus('변경사항이 저장되었습니다.');
+      setEditMode(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addHistory = async () => {
     if (!newHistoryTitle.trim()) return;
 
-    const now = new Date();
-    const dateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate(),
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    setLoading(true);
+    setStatus('');
+    try {
+      const response = await fetch(`/api/admin/customers/${draft.id}/histories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newHistoryTitle, note: newHistoryNote }),
+      });
 
-    setDraft((prev) => ({
-      ...prev,
-      histories: [
-        { dateTime, title: newHistoryTitle.trim(), note: newHistoryNote.trim() || undefined },
-        ...prev.histories,
-      ],
-    }));
+      const updated = (await response.json()) as Customer;
+      if (!response.ok) {
+        setStatus('기록 추가에 실패했습니다.');
+        return;
+      }
 
-    setNewHistoryTitle('');
-    setNewHistoryNote('');
+      setDraft(updated);
+      setNewHistoryTitle('');
+      setNewHistoryNote('');
+      setStatus('새 기록이 추가되었습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,7 +77,12 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
         <Button variant={editMode ? 'secondary' : 'outline'} onClick={() => setEditMode(!editMode)}>
           {editMode ? '편집 종료' : '편집 모드'}
         </Button>
+        <Button onClick={saveChanges} disabled={!editMode || loading}>
+          저장
+        </Button>
       </div>
+
+      {status && <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{status}</p>}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -162,7 +204,7 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
               value={newHistoryNote}
               onChange={(e) => setNewHistoryNote(e.target.value)}
             />
-            <Button onClick={addHistory}>새 기록 추가</Button>
+            <Button onClick={addHistory} disabled={loading}>새 기록 추가</Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
