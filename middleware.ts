@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_COOKIES } from '@/lib/auth/admin-auth';
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
 import { getAuthJwtSecret, verifyAdminSessionJwt } from '@/lib/auth/jwt';
 
 async function hasValidSession(request: NextRequest) {
@@ -25,6 +26,18 @@ export async function middleware(request: NextRequest) {
   }
 
   if (currentPath === '/sign-in' && isAuthed) {
+=======
+
+export function middleware(request: NextRequest) {
+  const session = request.cookies.get(AUTH_COOKIES.session)?.value;
+  const currentPath = request.nextUrl.pathname;
+
+  if (currentPath.startsWith('/dashboard') && !session) {
+    return NextResponse.redirect(new URL('/sign-in', request.url));
+  }
+
+  if (currentPath === '/sign-in' && session) {
+>>>>>>> main
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
