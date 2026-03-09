@@ -22,10 +22,14 @@
 
 ## 4) 데이터 소스 전환(DB 연동 준비)
 - `DATA_PROVIDER`
-  - 현재 기본값: `memory`
-  - 권장 목표값: `prisma` 또는 `supabase` (리포지토리 구현 연결 시)
+  - `supabase`로 설정하면 고객사 데이터 API가 Supabase 테이블을 사용합니다
+  - 예: `DATA_PROVIDER=supabase`
+- `SUPABASE_CUSTOMERS_TABLE`
+  - 고객사 데이터 테이블명
+  - 기본값: `customers`
+
 - `DATABASE_URL`
-  - PostgreSQL 연결 문자열 (Prisma/Supabase 연결 시)
+  - (Prisma 경로로 갈 경우) PostgreSQL 연결 문자열
   - 예: `postgresql://USER:PASSWORD@HOST:5432/DB?schema=public`
 
 ---
