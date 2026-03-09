@@ -71,17 +71,28 @@ type SupabaseCustomerRow = {
   histories: Customer['histories'];
 };
 
+async function parseSupabaseError(response: Response) {
+  const fallback = `status=${response.status}`;
+
+  try {
+    const payload = (await response.json()) as { message?: string; hint?: string; code?: string };
+    return [payload.code, payload.message, payload.hint].filter(Boolean).join(' | ') || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 class SupabaseCustomerRepository implements CustomerRepository {
   constructor(
     private readonly url: string,
-    private readonly anonKey: string,
+    private readonly key: string,
     private readonly table: string,
   ) {}
 
   private headers() {
     return {
-      apikey: this.anonKey,
-      Authorization: `Bearer ${this.anonKey}`,
+      apikey: this.key,
+      Authorization: `Bearer ${this.key}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
     };
@@ -111,7 +122,7 @@ class SupabaseCustomerRepository implements CustomerRepository {
     });
 
     if (!response.ok) {
-      throw new Error(`Supabase list failed: ${response.status}`);
+      throw new Error(`Supabase list failed: ${await parseSupabaseError(response)}`);
     }
 
     const rows = (await response.json()) as SupabaseCustomerRow[];
@@ -128,7 +139,7 @@ class SupabaseCustomerRepository implements CustomerRepository {
     );
 
     if (!response.ok) {
-      throw new Error(`Supabase getById failed: ${response.status}`);
+      throw new Error(`Supabase getById failed: ${await parseSupabaseError(response)}`);
     }
 
     const rows = (await response.json()) as SupabaseCustomerRow[];
@@ -154,7 +165,7 @@ class SupabaseCustomerRepository implements CustomerRepository {
     );
 
     if (!response.ok) {
-      throw new Error(`Supabase updateById failed: ${response.status}`);
+      throw new Error(`Supabase updateById failed: ${await parseSupabaseError(response)}`);
     }
 
     const rows = (await response.json()) as SupabaseCustomerRow[];
@@ -170,10 +181,7 @@ class SupabaseCustomerRepository implements CustomerRepository {
       now.getDate(),
     ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    const updatedHistories = [
-      { dateTime, title: payload.title, note: payload.note },
-      ...existing.histories,
-    ];
+    const updatedHistories = [{ dateTime, title: payload.title, note: payload.note }, ...existing.histories];
 
     const response = await fetch(
       `${this.url}/rest/v1/${this.table}?id=eq.${encodeURIComponent(id)}&select=*`,
@@ -185,7 +193,7 @@ class SupabaseCustomerRepository implements CustomerRepository {
     );
 
     if (!response.ok) {
-      throw new Error(`Supabase addHistory failed: ${response.status}`);
+      throw new Error(`Supabase addHistory failed: ${await parseSupabaseError(response)}`);
     }
 
     const rows = (await response.json()) as SupabaseCustomerRow[];
@@ -199,23 +207,31 @@ type GlobalStore = typeof globalThis & {
 
 const g = globalThis as GlobalStore;
 
+function resolveSupabaseConnection() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+  return { url, key };
+}
+
 function createRepository(): CustomerRepository {
   const provider = (process.env.DATA_PROVIDER ?? 'memory').toLowerCase();
 
   if (provider === 'supabase') {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const { url, key } = resolveSupabaseConnection();
     const table = process.env.SUPABASE_CUSTOMERS_TABLE ?? 'customers';
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!url || !key) {
       throw new Error(
-        '[customer-repository] DATA_PROVIDER=supabase but NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY/NEXT_PUBLIC_SUPABASE_ANON_KEY is missing.',
+        '[customer-repository] DATA_PROVIDER=supabase but Supabase URL/KEY is missing. Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY.',
       );
     }
 
-    return new SupabaseCustomerRepository(supabaseUrl, supabaseAnonKey, table);
+    return new SupabaseCustomerRepository(url, key, table);
   }
 
   // TODO: DATA_PROVIDER=prisma 구현 연결

@@ -47,17 +47,40 @@ type SupabaseTrafficRow = {
   visited_at: string;
 };
 
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
+async function parseSupabaseError(response: Response) {
+  const fallback = `status=${response.status}`;
+
+  try {
+    const payload = (await response.json()) as { message?: string; hint?: string; code?: string };
+    return [payload.code, payload.message, payload.hint].filter(Boolean).join(' | ') || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+class SupabaseTrafficRepository implements TrafficRepository {
+  constructor(
+    private readonly url: string,
+    private readonly key: string,
+=======
 class SupabaseTrafficRepository implements TrafficRepository {
   constructor(
     private readonly url: string,
     private readonly anonKey: string,
+>>>>>>> main
     private readonly table: string,
   ) {}
 
   private headers() {
     return {
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
+      apikey: this.key,
+      Authorization: `Bearer ${this.key}`,
+=======
       apikey: this.anonKey,
       Authorization: `Bearer ${this.anonKey}`,
+>>>>>>> main
       'Content-Type': 'application/json',
     };
   }
@@ -70,7 +93,11 @@ class SupabaseTrafficRepository implements TrafficRepository {
     });
 
     if (!response.ok) {
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
+      throw new Error(`Supabase traffic track failed: ${await parseSupabaseError(response)}`);
+=======
       throw new Error(`Supabase traffic track failed: ${response.status}`);
+>>>>>>> main
     }
   }
 
@@ -85,7 +112,11 @@ class SupabaseTrafficRepository implements TrafficRepository {
     );
 
     if (!response.ok) {
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
+      throw new Error(`Supabase traffic summary failed: ${await parseSupabaseError(response)}`);
+=======
       throw new Error(`Supabase traffic summary failed: ${response.status}`);
+>>>>>>> main
     }
 
     const rows = (await response.json()) as SupabaseTrafficRow[];
@@ -162,10 +193,30 @@ type GlobalStore = typeof globalThis & {
 
 const g = globalThis as GlobalStore;
 
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
+function resolveSupabaseConnection() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+  return { url, key };
+}
+
+=======
+>>>>>>> main
 function createRepository(): TrafficRepository {
   const provider = (process.env.DATA_PROVIDER ?? 'memory').toLowerCase();
 
   if (provider === 'supabase') {
+<<<<<<< codex/redesign-company-website-completely-ghx3mq
+    const { url, key } = resolveSupabaseConnection();
+
+    if (url && key) {
+      return new SupabaseTrafficRepository(url, key, process.env.SUPABASE_TRAFFIC_TABLE ?? 'traffic_events');
+=======
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey =
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??
@@ -177,6 +228,7 @@ function createRepository(): TrafficRepository {
         supabaseAnonKey,
         process.env.SUPABASE_TRAFFIC_TABLE ?? 'traffic_events',
       );
+>>>>>>> main
     }
   }
 
