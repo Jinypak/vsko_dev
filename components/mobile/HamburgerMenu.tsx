@@ -79,6 +79,12 @@ const HamburgerMenu = () => {
                   문의하기
                 </Link>
               </SheetClose>
+
+              <SheetClose asChild>
+                <Link href="/dashboard" className="rounded-xl p-3 transition hover:bg-slate-100">
+                  Dashboard
+                </Link>
+              </SheetClose>
             </SheetDescription>
           </SheetHeader>
         </SheetContent>

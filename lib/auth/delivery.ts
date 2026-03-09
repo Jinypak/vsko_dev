@@ -67,3 +67,32 @@ export async function sendKakaoOtp(phone: string, otp: string) {
 
   return { delivered: true, provider: 'kakao-webhook' };
 }
+
+export async function sendContactInquiryEmail({
+  inquiryType,
+  name,
+  email,
+  message,
+}: {
+  inquiryType: '도입 문의' | '기술 지원';
+  name: string;
+  email: string;
+  message: string;
+}) {
+  const target = inquiryType === '도입 문의' ? 'sales@vsko.co.kr' : 'support@vsko.co.kr';
+  const subject = `[VSKO 문의 접수] ${inquiryType} - ${name}`;
+  const html = `
+    <h3>${inquiryType}</h3>
+    <p><b>이름:</b> ${name}</p>
+    <p><b>이메일:</b> ${email}</p>
+    <p><b>내용:</b></p>
+    <p>${message.replace(/\n/g, '<br/>')}</p>
+  `;
+
+  const result = await sendViaResend(target, subject, html);
+  if (!result.delivered) {
+    console.log(`[CONTACT:FALLBACK] ${inquiryType} | ${name} | ${email} | ${message}`);
+  }
+
+  return result;
+}
