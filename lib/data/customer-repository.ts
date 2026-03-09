@@ -200,15 +200,19 @@ type GlobalStore = typeof globalThis & {
 const g = globalThis as GlobalStore;
 
 function createRepository(): CustomerRepository {
-  const provider = process.env.DATA_PROVIDER ?? 'memory';
+  const provider = (process.env.DATA_PROVIDER ?? 'memory').toLowerCase();
 
   if (provider === 'supabase') {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+    const supabaseAnonKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ??
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const table = process.env.SUPABASE_CUSTOMERS_TABLE ?? 'customers';
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return new InMemoryCustomerRepository(seedCustomers);
+      throw new Error(
+        '[customer-repository] DATA_PROVIDER=supabase but NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY/NEXT_PUBLIC_SUPABASE_ANON_KEY is missing.',
+      );
     }
 
     return new SupabaseCustomerRepository(supabaseUrl, supabaseAnonKey, table);
