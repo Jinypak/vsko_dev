@@ -33,6 +33,18 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
     setVerificationLogs((prev) => [log, ...prev].slice(0, 8));
   };
 
+  const collectPatchMismatches = (latest: Customer, expected: Customer) => {
+    const mismatches: string[] = [];
+
+    if (latest.hsmCount !== expected.hsmCount) mismatches.push(`hsmCount(${latest.hsmCount} != ${expected.hsmCount})`);
+    if (latest.model !== expected.model) mismatches.push(`model(${latest.model} != ${expected.model})`);
+    if (latest.engineer !== expected.engineer) mismatches.push(`engineer(${latest.engineer} != ${expected.engineer})`);
+    if (JSON.stringify(latest.serials) !== JSON.stringify(expected.serials)) mismatches.push('serials');
+    if (JSON.stringify(latest.contacts) !== JSON.stringify(expected.contacts)) mismatches.push('contacts');
+
+    return mismatches;
+  };
+
   const verifyAfterPatch = async (expected: Customer) => {
     const getResponse = await fetch(`/api/admin/customers/${expected.id}`, { cache: 'no-store' });
     const latest = (await getResponse.json().catch(() => null)) as Customer | null;
@@ -46,18 +58,15 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       return;
     }
 
-    const isSynced =
-      latest.hsmCount === expected.hsmCount &&
-      latest.model === expected.model &&
-      latest.engineer === expected.engineer &&
-      JSON.stringify(latest.serials) === JSON.stringify(expected.serials);
+    const mismatches = collectPatchMismatches(latest, expected);
 
     appendLog({
       time: nowTime(),
       action: 'PATCH',
-      result: isSynced
-        ? '검증 성공: PATCH 후 GET 값이 반영되었습니다.'
-        : `검증 경고: PATCH 후 GET 값 불일치 (model: ${latest.model}, hsmCount: ${latest.hsmCount})`,
+      result:
+        mismatches.length === 0
+          ? '검증 성공: PATCH 후 GET 값이 반영되었습니다.'
+          : `검증 경고: PATCH 후 GET 불일치 [${mismatches.join(', ')}]`,
     });
   };
 
@@ -78,9 +87,9 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       time: nowTime(),
       action: 'POST',
       result:
-        latest.histories.length >= expectedHistoryCount
-          ? '검증 성공: 기록 추가 후 GET 히스토리가 증가했습니다.'
-          : '검증 경고: 기록 추가 후 GET 히스토리 증가가 확인되지 않습니다.',
+        latest.histories.length === expectedHistoryCount
+          ? '검증 성공: 기록 추가 후 GET 히스토리 개수가 일치합니다.'
+          : `검증 경고: 기록 추가 후 GET 히스토리 개수 불일치 (${latest.histories.length} != ${expectedHistoryCount})`,
     });
   };
 
