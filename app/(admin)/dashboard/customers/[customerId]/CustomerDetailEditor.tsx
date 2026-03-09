@@ -1,20 +1,88 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Customer } from '@/lib/admin-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
+type VerificationLog = {
+  time: string;
+  action: 'PATCH' | 'POST';
+  result: string;
+};
+
+function nowTime() {
+  return new Date().toLocaleTimeString('ko-KR', { hour12: false });
+}
+
 export default function CustomerDetailEditor({ customer }: { customer: Customer }) {
+  const router = useRouter();
   const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState(customer);
   const [newHistoryTitle, setNewHistoryTitle] = useState('');
   const [newHistoryNote, setNewHistoryNote] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationLogs, setVerificationLogs] = useState<VerificationLog[]>([]);
 
   const serialText = useMemo(() => draft.serials.join(', '), [draft.serials]);
+
+  const appendLog = (log: VerificationLog) => {
+    setVerificationLogs((prev) => [log, ...prev].slice(0, 8));
+  };
+
+  const verifyAfterPatch = async (expected: Customer) => {
+    const getResponse = await fetch(`/api/admin/customers/${expected.id}`, { cache: 'no-store' });
+    const latest = (await getResponse.json().catch(() => null)) as Customer | null;
+
+    if (!getResponse.ok || !latest) {
+      appendLog({
+        time: nowTime(),
+        action: 'PATCH',
+        result: `검증 실패: GET 재조회 오류 (status ${getResponse.status})`,
+      });
+      return;
+    }
+
+    const isSynced =
+      latest.hsmCount === expected.hsmCount &&
+      latest.model === expected.model &&
+      latest.engineer === expected.engineer &&
+      JSON.stringify(latest.serials) === JSON.stringify(expected.serials);
+
+    appendLog({
+      time: nowTime(),
+      action: 'PATCH',
+      result: isSynced
+        ? '검증 성공: PATCH 후 GET 값이 반영되었습니다.'
+        : `검증 경고: PATCH 후 GET 값 불일치 (model: ${latest.model}, hsmCount: ${latest.hsmCount})`,
+    });
+  };
+
+  const verifyAfterAddHistory = async (expectedHistoryCount: number) => {
+    const getResponse = await fetch(`/api/admin/customers/${draft.id}`, { cache: 'no-store' });
+    const latest = (await getResponse.json().catch(() => null)) as Customer | null;
+
+    if (!getResponse.ok || !latest) {
+      appendLog({
+        time: nowTime(),
+        action: 'POST',
+        result: `검증 실패: GET 재조회 오류 (status ${getResponse.status})`,
+      });
+      return;
+    }
+
+    appendLog({
+      time: nowTime(),
+      action: 'POST',
+      result:
+        latest.histories.length >= expectedHistoryCount
+          ? '검증 성공: 기록 추가 후 GET 히스토리가 증가했습니다.'
+          : '검증 경고: 기록 추가 후 GET 히스토리 증가가 확인되지 않습니다.',
+    });
+  };
 
   const saveChanges = async () => {
     setLoading(true);
@@ -32,13 +100,19 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
         }),
       });
 
+      const payload = (await response.json().catch(() => null)) as { message?: string } | Customer | null;
       if (!response.ok) {
-        setStatus('저장에 실패했습니다.');
+        setStatus(payload && 'message' in payload && payload.message ? payload.message : '저장에 실패했습니다.');
+        appendLog({ time: nowTime(), action: 'PATCH', result: `PATCH 실패 (status ${response.status})` });
         return;
       }
 
+      const updatedCustomer = payload as Customer;
+      setDraft(updatedCustomer);
       setStatus('변경사항이 저장되었습니다.');
       setEditMode(false);
+      await verifyAfterPatch(updatedCustomer);
+      router.refresh();
     } finally {
       setLoading(false);
     }
@@ -56,16 +130,20 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
         body: JSON.stringify({ title: newHistoryTitle, note: newHistoryNote }),
       });
 
-      const updated = (await response.json()) as Customer;
+      const payload = (await response.json().catch(() => null)) as { message?: string } | Customer | null;
       if (!response.ok) {
-        setStatus('기록 추가에 실패했습니다.');
+        setStatus(payload && 'message' in payload && payload.message ? payload.message : '기록 추가에 실패했습니다.');
+        appendLog({ time: nowTime(), action: 'POST', result: `POST 실패 (status ${response.status})` });
         return;
       }
 
-      setDraft(updated);
+      const updatedCustomer = payload as Customer;
+      setDraft(updatedCustomer);
       setNewHistoryTitle('');
       setNewHistoryNote('');
       setStatus('새 기록이 추가되었습니다.');
+      await verifyAfterAddHistory(updatedCustomer.histories.length);
+      router.refresh();
     } finally {
       setLoading(false);
     }
@@ -83,6 +161,20 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       </div>
 
       {status && <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{status}</p>}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>임시 반영 검증 로그</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-slate-600">
+          {verificationLogs.length === 0 && <p>아직 검증 로그가 없습니다.</p>}
+          {verificationLogs.map((log, index) => (
+            <p key={`${log.time}-${log.action}-${index}`}>
+              [{log.time}] {log.action} - {log.result}
+            </p>
+          ))}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -204,7 +296,9 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
               value={newHistoryNote}
               onChange={(e) => setNewHistoryNote(e.target.value)}
             />
-            <Button onClick={addHistory} disabled={loading}>새 기록 추가</Button>
+            <Button onClick={addHistory} disabled={loading}>
+              새 기록 추가
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">

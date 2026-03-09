@@ -219,10 +219,12 @@ function resolveSupabaseConnection() {
 }
 
 function createRepository(): CustomerRepository {
-  const provider = (process.env.DATA_PROVIDER ?? 'memory').toLowerCase();
+  const configuredProvider = (process.env.DATA_PROVIDER ?? '').trim().toLowerCase();
+  const { url, key } = resolveSupabaseConnection();
+
+  const provider = configuredProvider || (url && key ? 'supabase' : 'memory');
 
   if (provider === 'supabase') {
-    const { url, key } = resolveSupabaseConnection();
     const table = process.env.SUPABASE_CUSTOMERS_TABLE ?? 'customers';
 
     if (!url || !key) {
