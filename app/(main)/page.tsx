@@ -13,22 +13,22 @@ const sectors = [
 export default function Home() {
   return (
     <main>
-      <section className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
+      <section className="bg-gradient-to-br from-sky-100 via-indigo-50 to-slate-100 text-slate-800">
         <div className="mx-auto w-full max-w-6xl px-6 py-24">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-200">Next Security Standard</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Next Security Standard</p>
           <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">
             비전 스퀘어,
-            <span className="block text-indigo-200">기업 보안 인프라를 새롭게 설계합니다.</span>
+            <span className="block text-primary">기업 보안 인프라를 새롭게 설계합니다.</span>
           </h1>
-          <p className="mt-6 max-w-3xl text-base text-slate-200 md:text-lg">
+          <p className="mt-6 max-w-3xl text-base text-slate-600 md:text-lg">
             HSM과 PSE 중심의 고신뢰 보안 솔루션으로 고객의 핵심 데이터를 보호하고,
             규제 준수부터 운영 안정성까지 한 번에 해결합니다.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href="/contact" className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900">
+            <a href="/contact" className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
               도입 상담 요청
             </a>
-            <a href="/product" className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white">
+            <a href="/product" className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-slate-800">
               솔루션 둘러보기
             </a>
           </div>
@@ -48,7 +48,7 @@ export default function Home() {
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-8">
+          <div className="rounded-2xl border border-indigo-100 bg-sky-50 p-8">
             <p className="text-sm font-semibold text-indigo-700">대표 메시지</p>
             <p className="mt-4 text-lg leading-relaxed text-slate-700">
               “보안은 단일 솔루션이 아니라 설계와 운영의 결과입니다. 비전 스퀘어는 고객의
