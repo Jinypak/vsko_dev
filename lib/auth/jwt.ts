@@ -1,6 +1,8 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+const DEFAULT_DEV_JWT_SECRET = 'local-dev-auth-jwt-secret';
+
 type JwtPayload = {
   sub: string;
   channel: 'email' | 'kakao';
@@ -63,7 +65,14 @@ async function verifyHmacSha256(content: string, signature: Uint8Array, secret: 
 }
 
 export function getAuthJwtSecret() {
-  return process.env.AUTH_JWT_SECRET ?? '';
+  const configuredSecret = process.env.AUTH_JWT_SECRET?.trim();
+  if (configuredSecret) return configuredSecret;
+
+  if (process.env.NODE_ENV === 'production') {
+    return '';
+  }
+
+  return DEFAULT_DEV_JWT_SECRET;
 }
 
 export async function createAdminSessionJwt(payload: {
