@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_COOKIES, SESSION_TTL_SECONDS } from '@/lib/auth/admin-auth';
-import { createAdminSessionJwt, getAuthJwtSecret } from '@/lib/auth/jwt';
 
 export async function POST(request: NextRequest) {
   const { otp } = (await request.json()) as { otp?: string };
@@ -23,24 +22,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'OTP가 올바르지 않습니다.' }, { status: 400 });
   }
 
-  const secret = getAuthJwtSecret();
-  if (!secret) {
-    return NextResponse.json(
-      { message: 'AUTH_JWT_SECRET 환경변수가 없어 로그인 세션을 생성할 수 없습니다.' },
-      { status: 500 },
-    );
-  }
-
-  const jwt = await createAdminSessionJwt({
-    principal,
-    channel,
-    ttlSeconds: SESSION_TTL_SECONDS,
-    secret,
-  });
+  // TODO(auth): 임시 우선순위 작업을 위해 JWT 생성 흐름을 잠시 비활성화.
+  // 원복 시 아래 블록을 되살려 `jwt`를 생성하고 세션 쿠키에 저장할 것.
+  // const secret = getAuthJwtSecret();
+  // if (!secret) {
+  //   return NextResponse.json(
+  //     {
+  //       message:
+  //         'JWT 시크릿이 없습니다. AUTH_JWT_SECRET 또는 NODE_ENV별 AUTH_JWT_SECRET_PRODUCTION/DEVELOPMENT/TEST를 설정해 주세요.',
+  //     },
+  //     { status: 500 },
+  //   );
+  // }
+  //
+  // const jwt = await createAdminSessionJwt({
+  //   principal,
+  //   channel,
+  //   ttlSeconds: SESSION_TTL_SECONDS,
+  //   secret,
+  // });
 
   const response = NextResponse.json({ message: '로그인 성공' });
 
-  response.cookies.set(AUTH_COOKIES.session, jwt, {
+  response.cookies.set(AUTH_COOKIES.session, principal, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

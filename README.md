@@ -15,3 +15,16 @@
 - **Contact**
   - 위치
   - 연락 Form
+
+## Admin JWT 환경변수 설정
+
+관리자 로그인 세션 JWT는 아래 우선순위로 시크릿을 찾습니다.
+
+1. `AUTH_JWT_SECRET` (공통)
+2. `NODE_ENV`별 전용 값
+   - production: `AUTH_JWT_SECRET_PRODUCTION`
+   - development: `AUTH_JWT_SECRET_DEVELOPMENT`
+   - test: `AUTH_JWT_SECRET_TEST`
+3. development에서만 기본값(`local-dev-auth-jwt-secret`) 사용
+
+운영에서는 반드시 `AUTH_JWT_SECRET` 또는 `AUTH_JWT_SECRET_PRODUCTION`을 설정하세요.
