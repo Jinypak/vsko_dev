@@ -4,29 +4,31 @@ import {
   AUTH_COOKIES,
   OTP_TTL_MS,
   generateOtp,
-  isAllowedAdminEmail,
-  normalizeEmail,
+  isAllowedAdminPhone,
+  normalizePhone,
 } from '@/lib/auth/admin-auth';
-import { sendEmailOtp } from '@/lib/auth/delivery';
+import { sendKakaoOtp } from '@/lib/auth/delivery';
 
 export async function POST(request: NextRequest) {
-  const { email } = (await request.json()) as { email?: string };
-  const normalizedEmail = normalizeEmail(email ?? '');
+  const { phone } = (await request.json()) as { phone?: string };
+  const normalizedPhone = normalizePhone(phone ?? '');
 
-  if (!normalizedEmail || !isAllowedAdminEmail(normalizedEmail)) {
+  if (!normalizedPhone || !isAllowedAdminPhone(normalizedPhone)) {
     return NextResponse.json(
-      { message: '허용된 vsko.co.kr 관리자 메일만 로그인할 수 있습니다.' },
+      {
+        message:
+          '허용된 관리자 휴대폰 번호만 카카오톡 OTP 인증이 가능합니다. (ADMIN_ALLOWED_PHONES 설정 필요)',
+      },
       { status: 400 },
     );
   }
 
   const otp = generateOtp();
   const expiresAt = Date.now() + OTP_TTL_MS;
-
-  const delivery = await sendEmailOtp(normalizedEmail, otp);
+  const delivery = await sendKakaoOtp(normalizedPhone, otp);
 
   const response = NextResponse.json({
-    message: `메일 OTP를 발송했습니다. (${delivery.provider})`,
+    message: `카카오톡 OTP를 발송했습니다. (${delivery.provider})`,
     devOtp: delivery.delivered ? undefined : otp,
   });
 
@@ -37,14 +39,14 @@ export async function POST(request: NextRequest) {
     path: '/',
     maxAge: OTP_TTL_MS / 1000,
   });
-  response.cookies.set(AUTH_COOKIES.principal, normalizedEmail, {
+  response.cookies.set(AUTH_COOKIES.principal, normalizedPhone, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: OTP_TTL_MS / 1000,
   });
-  response.cookies.set(AUTH_COOKIES.channel, 'email', {
+  response.cookies.set(AUTH_COOKIES.channel, 'kakao', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

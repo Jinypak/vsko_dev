@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '../globals.css';
 import Header from '@/components/Header';
+import TrafficTracker from '@/components/analytics/TrafficTracker';
 
 export const metadata: Metadata = {
   title: 'Vision Square | 보안 솔루션',
@@ -17,6 +18,7 @@ export default function MainLayout({
     <html lang="ko">
       <body className="antialiased">
         <Header />
+        <TrafficTracker />
         {children}
       </body>
     </html>

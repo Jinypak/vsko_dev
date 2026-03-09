@@ -1,9 +1,11 @@
-const signInLayout = ({ children }: { children: React.ReactNode }) => {
+import '../../globals.css';
+
+const SignInLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="ko">
+      <body className="antialiased">{children}</body>
     </html>
   );
 };
 
-export default signInLayout;
+export default SignInLayout;

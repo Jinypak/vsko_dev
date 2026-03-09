@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { AUTH_COOKIES } from '@/lib/auth/admin-auth';
 
 export function middleware(request: NextRequest) {
-  const session = request.cookies.get('vsko_admin_session')?.value;
+  const session = request.cookies.get(AUTH_COOKIES.session)?.value;
   const currentPath = request.nextUrl.pathname;
 
   if (currentPath.startsWith('/dashboard') && !session) {
