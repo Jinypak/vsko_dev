@@ -2,12 +2,12 @@
 
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from '@/components/ui/sheet';
 
 import Link from 'next/link';
@@ -15,34 +15,49 @@ import React from 'react';
 
 const HamburgerMenu = () => {
   const [open, setOpen] = React.useState(false);
+
   return (
-    <div className="md:hidden block hover:cursor-pointer">
+    <div className="block md:hidden">
       <Sheet>
-        <SheetTrigger>HAM</SheetTrigger>
+        <SheetTrigger className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium">
+          메뉴
+        </SheetTrigger>
         <SheetContent>
           <SheetHeader>
             <SheetTitle className="text-center">비전 스퀘어</SheetTitle>
-            <SheetDescription className="flex flex-col text-center">
+            <SheetDescription className="mt-6 flex flex-col gap-2 text-center text-slate-700">
               <SheetClose asChild>
-                <Link
-                  href="/about"
-                  className="hover:bg-gray-400 transition p-4 rounded-2xl"
-                >
+                <Link href="/" className="rounded-xl p-3 transition hover:bg-slate-100">
+                  홈
+                </Link>
+              </SheetClose>
+              <SheetClose asChild>
+                <Link href="/about" className="rounded-xl p-3 transition hover:bg-slate-100">
                   회사 소개
                 </Link>
               </SheetClose>
-              <div
-                className="hover:bg-gray-400 transition p-4 rounded-2xl"
+              <button
+                className="rounded-xl p-3 transition hover:bg-slate-100"
                 onClick={() => setOpen(!open)}
+                type="button"
               >
                 제품 소개
-              </div>
+              </button>
               {open && (
                 <div className="flex flex-col items-center justify-center">
                   <SheetClose asChild>
                     <Link
+                      href="/product"
+                      className="rounded-xl p-3 text-sm transition hover:bg-slate-100"
+                      onClick={() => setOpen(false)}
+                    >
+                      제품 개요
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link
                       href="/product/hsm"
-                      className="hover:bg-gray-400 transition p-4 rounded-2xl"
+                      className="rounded-xl p-3 text-sm transition hover:bg-slate-100"
                       onClick={() => setOpen(false)}
                     >
                       HSM
@@ -51,7 +66,7 @@ const HamburgerMenu = () => {
                   <SheetClose asChild>
                     <Link
                       href="/product/pse"
-                      className="hover:bg-gray-400 transition p-4 rounded-2xl"
+                      className="rounded-xl p-3 text-sm transition hover:bg-slate-100"
                       onClick={() => setOpen(false)}
                     >
                       PSE
@@ -60,11 +75,8 @@ const HamburgerMenu = () => {
                 </div>
               )}
               <SheetClose asChild>
-                <Link
-                  href="/contact"
-                  className="hover:bg-gray-400 transition p-4 rounded-2xl"
-                >
-                  Contact
+                <Link href="/contact" className="rounded-xl p-3 transition hover:bg-slate-100">
+                  문의하기
                 </Link>
               </SheetClose>
             </SheetDescription>
