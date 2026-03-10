@@ -34,7 +34,7 @@ async function tableExists(tableName: 'customers' | 'traffic_events') {
     sql`SELECT to_regclass(${`public.${tableName}`}) as exists`,
   );
 
-  return Boolean(result.rows[0]?.exists);
+  return Boolean(result[0]?.exists);
 }
 
 export async function ensureCoreTables() {
