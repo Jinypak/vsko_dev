@@ -15,25 +15,22 @@ const emptyTrafficSummary: TrafficSummary = {
 };
 
 export default async function AdminDashboardPage() {
-  let errorMessage: string | null = null;
   let customerCount = 0;
   let hsmTotal = 0;
   let traffic = emptyTrafficSummary;
 
-  try {
-    const [customers, trafficSummary] = await Promise.all([
-      getCustomerRepository().list(),
-      getTrafficRepository().getSummary(),
-    ]);
+  const [customersResult, trafficResult] = await Promise.allSettled([
+    getCustomerRepository().list(),
+    getTrafficRepository().getSummary(),
+  ]);
 
-    customerCount = customers.length;
-    hsmTotal = customers.reduce((sum, customer) => sum + customer.hsmCount, 0);
-    traffic = trafficSummary;
-  } catch (error) {
-    errorMessage =
-      error instanceof Error
-        ? error.message
-        : '통계 데이터를 불러오지 못했습니다. 환경변수를 확인해 주세요.';
+  if (customersResult.status === 'fulfilled') {
+    customerCount = customersResult.value.length;
+    hsmTotal = customersResult.value.reduce((sum, customer) => sum + customer.hsmCount, 0);
+  }
+
+  if (trafficResult.status === 'fulfilled') {
+    traffic = trafficResult.value;
   }
 
   const stats = [
@@ -56,20 +53,6 @@ export default async function AdminDashboardPage() {
         <AdminDashboardNav />
 
         <section className="flex-1 space-y-6">
-          {errorMessage && (
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="text-red-700">설정 오류 안내</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-red-700">{errorMessage}</p>
-                <p className="mt-2 text-xs text-red-600">
-                  `.env.local`에 `DATA_PROVIDER`, `NEXT_PUBLIC_SUPABASE_URL`, Supabase 키를 확인한 뒤 서버를 재시작해 주세요.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
           <div className="grid gap-4 md:grid-cols-3">
             {stats.map((stat) => (
               <Card key={stat.label} className="bg-white/90">
@@ -132,7 +115,7 @@ export default async function AdminDashboardPage() {
             <CardContent>
               <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-600">
                 <li>현재 접속량은 방문 이벤트 기반(페이지 진입 1회)으로 집계됩니다.</li>
-                <li>정확한 운영 통계를 위해 Supabase의 `traffic_events` 테이블 연결을 권장합니다.</li>
+                <li>정확한 운영 통계를 위해 Neon + Drizzle `traffic_events` 테이블 연결을 권장합니다.</li>
               </ul>
               <Link
                 href="/dashboard/customers"
