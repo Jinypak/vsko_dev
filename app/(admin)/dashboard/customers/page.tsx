@@ -1,6 +1,9 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import Link from 'next/link';
 import AdminDashboardNav from '@/components/admin/AdminDashboardNav';
-import { getCustomerRepository } from '@/lib/data/customer-repository';
+import { getCustomerRepository, getCustomerRepositoryInfo } from '@/lib/data/customer-repository';
 import type { Customer } from '@/lib/admin-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +17,7 @@ export default async function CustomerListPage({
 }) {
   const params = await searchParams;
   const query = (params.q ?? '').trim();
+  const repositoryInfo = getCustomerRepositoryInfo();
 
   let filteredCustomers: Customer[] = [];
   let errorMessage: string | null = null;
@@ -49,6 +53,18 @@ export default async function CustomerListPage({
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">현재 데이터 소스</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm text-slate-600">
+              <p>provider: {repositoryInfo.provider}</p>
+              <p>configured(DATA_PROVIDER): {repositoryInfo.configuredProvider || '(empty)'}</p>
+              {repositoryInfo.table && <p>table: {repositoryInfo.table}</p>}
+              {repositoryInfo.supabaseUrlHost && <p>supabase host: {repositoryInfo.supabaseUrlHost}</p>}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

@@ -94,25 +94,31 @@ class SupabaseTrafficRepository implements TrafficRepository {
 
   async getSummary(): Promise<TrafficSummary> {
     const from = startOfDayBefore(6).toISOString();
-    const response = await fetch(
-      `${this.url}/rest/v1/${this.table}?select=path,visited_at&visited_at=gte.${encodeURIComponent(from)}&order=visited_at.asc`,
-      {
+    const requestUrl = `${this.url}/rest/v1/${this.table}?select=path,visited_at&visited_at=gte.${encodeURIComponent(from)}&order=visited_at.asc`;
+
+    try {
+      const response = await fetch(requestUrl, {
         headers: this.headers(),
         cache: 'no-store',
-      },
-    );
+      });
 
-    if (!response.ok) {
-      throw new Error(`Supabase traffic summary failed: ${await parseSupabaseError(response)}`);
+      if (!response.ok) {
+        throw new Error(`Supabase traffic summary failed: ${await parseSupabaseError(response)} | url=${requestUrl}`);
+      }
+
+      const rows = (await response.json()) as SupabaseTrafficRow[];
+      const events: TrafficEvent[] = rows.map((row) => ({
+        path: row.path,
+        visitedAt: row.visited_at,
+      }));
+
+      return summarizeEvents(events);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Supabase traffic summary fetch failed | baseUrl=${this.url} | table=${this.table} | from=${from} | detail=${message}`,
+      );
     }
-
-    const rows = (await response.json()) as SupabaseTrafficRow[];
-    const events: TrafficEvent[] = rows.map((row) => ({
-      path: row.path,
-      visitedAt: row.visited_at,
-    }));
-
-    return summarizeEvents(events);
   }
 }
 
