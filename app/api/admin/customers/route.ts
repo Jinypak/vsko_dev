@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCustomerRepository } from '@/lib/data/customer-repository';
 
+export const preferredRegion = 'sin1';
+
 export async function POST(request: NextRequest) {
   try {
     const { name } = (await request.json()) as { name?: string };
@@ -15,9 +17,11 @@ export async function POST(request: NextRequest) {
     const created = await repository.create({ name: trimmed });
 
     return NextResponse.json(created, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error('[api/admin/customers] POST failed', error);
+
     return NextResponse.json(
-      { message: '고객사 생성 중 오류가 발생했습니다. DB 권한/테이블 상태를 확인해 주세요.' },
+      { message: '고객사 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
       { status: 500 },
     );
   }
