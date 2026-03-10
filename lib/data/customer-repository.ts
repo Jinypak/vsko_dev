@@ -15,6 +15,7 @@ export type NewHistoryInput = {
 export interface CustomerRepository {
   list(query?: string): Promise<Customer[]>;
   getById(id: string): Promise<Customer | null>;
+  create(payload: { name: string }): Promise<Customer>;
   updateById(id: string, patch: CustomerPatch): Promise<Customer | null>;
   addHistory(id: string, payload: NewHistoryInput): Promise<Customer | null>;
 }
@@ -40,6 +41,31 @@ class InMemoryCustomerRepository implements CustomerRepository {
 
   async getById(id: string): Promise<Customer | null> {
     return this.data.find((customer) => customer.id === id) ?? null;
+  }
+
+  async create(payload: { name: string }): Promise<Customer> {
+    const baseId = payload.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+    const id = `${baseId || 'customer'}-${Date.now()}`;
+
+    const created: Customer = {
+      id,
+      name: payload.name.trim(),
+      hsmCount: 0,
+      model: '',
+      serials: [],
+      engineer: '',
+      contacts: [],
+      histories: [],
+    };
+
+    this.data.unshift(created);
+    return created;
   }
 
   async updateById(id: string, patch: CustomerPatch): Promise<Customer | null> {
@@ -100,6 +126,36 @@ class DrizzleCustomerRepository implements CustomerRepository {
     const db = getDb();
     const rows = await db.select().from(customersTable).where(eq(customersTable.id, id)).limit(1);
     return rows[0] ? this.mapRow(rows[0]) : null;
+  }
+
+  async create(payload: { name: string }): Promise<Customer> {
+    await ensureCoreTables();
+    const db = getDb();
+
+    const baseId = payload.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+    const id = `${baseId || 'customer'}-${Date.now()}`;
+
+    const rows = await db
+      .insert(customersTable)
+      .values({
+        id,
+        name: payload.name.trim(),
+        hsmCount: 0,
+        model: '',
+        serials: [],
+        engineer: '',
+        contacts: [],
+        histories: [],
+      })
+      .returning();
+
+    return this.mapRow(rows[0]);
   }
 
   async updateById(id: string, patch: CustomerPatch): Promise<Customer | null> {

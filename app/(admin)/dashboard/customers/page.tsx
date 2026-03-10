@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import AddCustomerForm from './AddCustomerForm';
 
 export default async function CustomerListPage({
   searchParams,
@@ -53,18 +54,6 @@ export default async function CustomerListPage({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">현재 데이터 소스</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1 text-sm text-slate-600">
-              <p>provider: {repositoryInfo.provider}</p>
-              <p>mode: {repositoryInfo.provider === 'drizzle' ? 'DATABASE_URL(Neon/Drizzle)' : 'memory fallback'}</p>
-              {repositoryInfo.table && <p>table: {repositoryInfo.table}</p>}
-              {repositoryInfo.dbHost && <p>db host: {repositoryInfo.dbHost}</p>}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle className="text-base">고객사 검색</CardTitle>
             </CardHeader>
             <CardContent>
@@ -95,9 +84,12 @@ export default async function CustomerListPage({
           </div>
 
           {filteredCustomers.length === 0 && (
-            <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-muted-foreground">
-              검색 결과가 없습니다.
-            </p>
+            <div className="space-y-3">
+              <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-muted-foreground">
+                검색 결과가 없습니다.
+              </p>
+              <AddCustomerForm />
+            </div>
           )}
         </section>
       </div>
