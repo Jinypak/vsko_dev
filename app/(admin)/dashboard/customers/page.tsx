@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const preferredRegion = 'sin1';
 
 import Link from 'next/link';
 import AdminDashboardNav from '@/components/admin/AdminDashboardNav';
@@ -21,11 +22,14 @@ export default async function CustomerListPage({
   const repositoryInfo = getCustomerRepositoryInfo();
 
   let filteredCustomers: Customer[] = [];
+  let listErrorMessage = '';
 
   try {
     const repository = getCustomerRepository();
     filteredCustomers = await repository.list(query);
-  } catch {
+  } catch (error) {
+    console.error('[dashboard/customers] list failed', error);
+    listErrorMessage = '고객사 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
     filteredCustomers = [];
   }
 
@@ -64,6 +68,8 @@ export default async function CustomerListPage({
             </CardContent>
           </Card>
 
+          <AddCustomerForm />
+
           <div className="space-y-3">
             {filteredCustomers.map((customer) => (
               <Link
@@ -84,12 +90,9 @@ export default async function CustomerListPage({
           </div>
 
           {filteredCustomers.length === 0 && (
-            <div className="space-y-3">
-              <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-muted-foreground">
-                검색 결과가 없습니다.
-              </p>
-              <AddCustomerForm />
-            </div>
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-muted-foreground">
+              {listErrorMessage || '검색 결과가 없습니다.'}
+            </p>
           )}
         </section>
       </div>

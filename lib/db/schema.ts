@@ -12,7 +12,7 @@ export const customersTable = pgTable('customers', {
     .notNull()
     .default([]),
   histories: jsonb('histories')
-    .$type<Array<{ dateTime: string; title: string; note?: string }>>()
+    .$type<Array<{ dateTime: string; category: 'work' | 'inspection' | 'consulting' | 'etc'; title: string; note?: string }>>()
     .notNull()
     .default([]),
 });
