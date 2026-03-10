@@ -1,6 +1,6 @@
 # API Key / 환경변수 목록
 
-아래는 현재 관리자 OTP 인증(메일/카카오톡) + 문의 메일 + DB 연동 준비에 필요한 환경변수 목록입니다.
+아래는 현재 관리자 OTP 인증(메일/카카오톡) + 문의 메일 + Neon DB 연동에 필요한 환경변수 목록입니다.
 
 ## 1) 관리자 세션 JWT
 - `AUTH_JWT_SECRET`
@@ -25,26 +25,10 @@
   - 카카오톡 OTP 허용 번호 목록(쉼표 구분, 숫자만 권장)
   - 예: `01012345678,01098765432`
 
-## 5) 데이터 소스 전환(DB 연동)
-- `DATA_PROVIDER`
-  - `supabase`로 설정하면 고객사 데이터 API가 Supabase 테이블을 사용합니다
-  - 예: `DATA_PROVIDER=supabase`
-- `SUPABASE_URL`
-  - Supabase 프로젝트 URL (`https://<project-ref>.supabase.co`)
-- `SUPABASE_SERVICE_ROLE_KEY`
-  - 서버 관리자 API에서 사용 권장
-- `SUPABASE_ANON_KEY`
-  - 서비스 롤 키 미사용 시 대체 가능
-- `SUPABASE_CUSTOMERS_TABLE`
-  - 고객사 데이터 테이블명
-  - 기본값: `customers`
-- `SUPABASE_TRAFFIC_TABLE`
-  - 트래픽 이벤트 테이블명
-  - 기본값: `traffic_events`
-
+## 5) Neon + Drizzle DB
 - `DATABASE_URL`
-  - (Prisma 경로로 갈 경우) PostgreSQL 연결 문자열
-  - 예: `postgresql://USER:PASSWORD@HOST:5432/DB?schema=public`
+  - Neon pooled/direct PostgreSQL 연결 문자열
+  - 예: `postgresql://USER:PASSWORD@HOST/DB?sslmode=require`
 
 ---
 

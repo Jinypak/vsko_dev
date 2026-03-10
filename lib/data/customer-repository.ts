@@ -1,4 +1,7 @@
+import { asc, eq, ilike } from 'drizzle-orm';
 import { customers as seedCustomers, type Customer } from '@/lib/admin-data';
+import { ensureCoreTables, getDb } from '@/lib/db/client';
+import { customersTable } from '@/lib/db/schema';
 
 export type CustomerPatch = Partial<
   Pick<Customer, 'hsmCount' | 'model' | 'engineer' | 'serials' | 'contacts'>
@@ -15,6 +18,12 @@ export interface CustomerRepository {
   updateById(id: string, patch: CustomerPatch): Promise<Customer | null>;
   addHistory(id: string, payload: NewHistoryInput): Promise<Customer | null>;
 }
+
+export type CustomerRepositoryInfo = {
+  provider: 'memory' | 'drizzle';
+  table?: string;
+  dbHost?: string;
+};
 
 class InMemoryCustomerRepository implements CustomerRepository {
   private data: Customer[];
@@ -60,49 +69,12 @@ class InMemoryCustomerRepository implements CustomerRepository {
   }
 }
 
-type SupabaseCustomerRow = {
-  id: string;
-  name: string;
-  hsm_count: number;
-  model: string;
-  serials: string[];
-  engineer: string;
-  contacts: Customer['contacts'];
-  histories: Customer['histories'];
-};
-
-async function parseSupabaseError(response: Response) {
-  const fallback = `status=${response.status}`;
-
-  try {
-    const payload = (await response.json()) as { message?: string; hint?: string; code?: string };
-    return [payload.code, payload.message, payload.hint].filter(Boolean).join(' | ') || fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-class SupabaseCustomerRepository implements CustomerRepository {
-  constructor(
-    private readonly url: string,
-    private readonly key: string,
-    private readonly table: string,
-  ) {}
-
-  private headers() {
-    return {
-      apikey: this.key,
-      Authorization: `Bearer ${this.key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    };
-  }
-
-  private mapRow(row: SupabaseCustomerRow): Customer {
+class DrizzleCustomerRepository implements CustomerRepository {
+  private mapRow(row: typeof customersTable.$inferSelect): Customer {
     return {
       id: row.id,
       name: row.name,
-      hsmCount: row.hsm_count,
+      hsmCount: row.hsmCount,
       model: row.model,
       serials: row.serials ?? [],
       engineer: row.engineer,
@@ -112,63 +84,40 @@ class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   async list(query?: string): Promise<Customer[]> {
-    const search = query
-      ? `?select=*&name=ilike.*${encodeURIComponent(query)}*&order=name.asc`
-      : '?select=*&order=name.asc';
+    await ensureCoreTables();
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(customersTable)
+      .where(query ? ilike(customersTable.name, `%${query}%`) : undefined)
+      .orderBy(asc(customersTable.name));
 
-    const response = await fetch(`${this.url}/rest/v1/${this.table}${search}`, {
-      headers: this.headers(),
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Supabase list failed: ${await parseSupabaseError(response)}`);
-    }
-
-    const rows = (await response.json()) as SupabaseCustomerRow[];
     return rows.map((row) => this.mapRow(row));
   }
 
   async getById(id: string): Promise<Customer | null> {
-    const response = await fetch(
-      `${this.url}/rest/v1/${this.table}?select=*&id=eq.${encodeURIComponent(id)}&limit=1`,
-      {
-        headers: this.headers(),
-        cache: 'no-store',
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Supabase getById failed: ${await parseSupabaseError(response)}`);
-    }
-
-    const rows = (await response.json()) as SupabaseCustomerRow[];
+    await ensureCoreTables();
+    const db = getDb();
+    const rows = await db.select().from(customersTable).where(eq(customersTable.id, id)).limit(1);
     return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async updateById(id: string, patch: CustomerPatch): Promise<Customer | null> {
-    const payload: Partial<SupabaseCustomerRow> = {};
+    await ensureCoreTables();
+    const db = getDb();
 
-    if (typeof patch.hsmCount !== 'undefined') payload.hsm_count = patch.hsmCount;
+    const payload: Partial<typeof customersTable.$inferInsert> = {};
+    if (typeof patch.hsmCount !== 'undefined') payload.hsmCount = patch.hsmCount;
     if (typeof patch.model !== 'undefined') payload.model = patch.model;
     if (typeof patch.engineer !== 'undefined') payload.engineer = patch.engineer;
     if (typeof patch.serials !== 'undefined') payload.serials = patch.serials;
     if (typeof patch.contacts !== 'undefined') payload.contacts = patch.contacts;
 
-    const response = await fetch(
-      `${this.url}/rest/v1/${this.table}?id=eq.${encodeURIComponent(id)}&select=*`,
-      {
-        method: 'PATCH',
-        headers: this.headers(),
-        body: JSON.stringify(payload),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Supabase updateById failed: ${await parseSupabaseError(response)}`);
+    if (Object.keys(payload).length === 0) {
+      return this.getById(id);
     }
 
-    const rows = (await response.json()) as SupabaseCustomerRow[];
+    const rows = await db.update(customersTable).set(payload).where(eq(customersTable.id, id)).returning();
     return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
@@ -183,65 +132,61 @@ class SupabaseCustomerRepository implements CustomerRepository {
 
     const updatedHistories = [{ dateTime, title: payload.title, note: payload.note }, ...existing.histories];
 
-    const response = await fetch(
-      `${this.url}/rest/v1/${this.table}?id=eq.${encodeURIComponent(id)}&select=*`,
-      {
-        method: 'PATCH',
-        headers: this.headers(),
-        body: JSON.stringify({ histories: updatedHistories }),
-      },
-    );
+    await ensureCoreTables();
+    const db = getDb();
+    const rows = await db
+      .update(customersTable)
+      .set({ histories: updatedHistories })
+      .where(eq(customersTable.id, id))
+      .returning();
 
-    if (!response.ok) {
-      throw new Error(`Supabase addHistory failed: ${await parseSupabaseError(response)}`);
-    }
-
-    const rows = (await response.json()) as SupabaseCustomerRow[];
     return rows[0] ? this.mapRow(rows[0]) : null;
   }
 }
 
 type GlobalStore = typeof globalThis & {
   __vskoCustomerRepository?: CustomerRepository;
+  __vskoCustomerRepositoryInfo?: CustomerRepositoryInfo;
 };
 
 const g = globalThis as GlobalStore;
 
-function resolveSupabaseConnection() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+function createRepository(): { repository: CustomerRepository; info: CustomerRepositoryInfo } {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
 
-  return { url, key };
-}
-
-function createRepository(): CustomerRepository {
-  const provider = (process.env.DATA_PROVIDER ?? 'memory').toLowerCase();
-
-  if (provider === 'supabase') {
-    const { url, key } = resolveSupabaseConnection();
-    const table = process.env.SUPABASE_CUSTOMERS_TABLE ?? 'customers';
-
-    if (!url || !key) {
-      throw new Error(
-        '[customer-repository] DATA_PROVIDER=supabase but Supabase URL/KEY is missing. Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY (recommended) or SUPABASE_ANON_KEY.',
-      );
-    }
-
-    return new SupabaseCustomerRepository(url, key, table);
+  if (databaseUrl) {
+    return {
+      repository: new DrizzleCustomerRepository(),
+      info: {
+        provider: 'drizzle',
+        table: 'customers',
+        dbHost: new URL(databaseUrl).host,
+      },
+    };
   }
 
-  // TODO: DATA_PROVIDER=prisma 구현 연결
-  return new InMemoryCustomerRepository(seedCustomers);
+  return {
+    repository: new InMemoryCustomerRepository(seedCustomers),
+    info: {
+      provider: 'memory',
+    },
+  };
 }
 
 export function getCustomerRepository() {
-  if (!g.__vskoCustomerRepository) {
-    g.__vskoCustomerRepository = createRepository();
+  if (!g.__vskoCustomerRepository || !g.__vskoCustomerRepositoryInfo) {
+    const created = createRepository();
+    g.__vskoCustomerRepository = created.repository;
+    g.__vskoCustomerRepositoryInfo = created.info;
   }
 
   return g.__vskoCustomerRepository;
+}
+
+export function getCustomerRepositoryInfo(): CustomerRepositoryInfo {
+  if (!g.__vskoCustomerRepositoryInfo) {
+    getCustomerRepository();
+  }
+
+  return g.__vskoCustomerRepositoryInfo ?? { provider: 'memory' };
 }

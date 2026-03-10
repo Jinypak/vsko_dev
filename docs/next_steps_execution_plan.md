@@ -21,7 +21,7 @@
 
 ### 1-2. 환경변수 준비
 - [ ] `DATABASE_URL`
-- [ ] `DATA_PROVIDER=prisma`
+- [ ] `DATABASE_URL`
 
 ### 1-3. 현재 추상화 연결 포인트
 - 파일: `lib/data/customer-repository.ts`
@@ -30,7 +30,7 @@
 해야 할 일:
 - [ ] `PrismaCustomerRepository` 구현 추가
 - [ ] `list/getById/updateById/addHistory`를 Prisma 쿼리로 매핑
-- [ ] `DATA_PROVIDER=prisma`일 때 해당 구현 반환
+- [ ] `DATABASE_URL`일 때 해당 구현 반환
 
 ---
 
