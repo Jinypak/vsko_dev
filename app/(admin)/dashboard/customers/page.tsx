@@ -34,7 +34,7 @@ export default async function CustomerListPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-none px-2 py-8 md:px-3 lg:px-4">
       <div className="mb-6">
         <Badge>Customer Management</Badge>
         <h1 className="mt-2 text-3xl font-semibold text-slate-800">고객사 관리</h1>

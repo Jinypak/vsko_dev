@@ -108,40 +108,40 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
 
       {status && <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{status}</p>}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>도입 장비 정보 (표 편집)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="overflow-x-auto rounded-md border border-slate-200">
-              <table className="w-full min-w-[640px] border-collapse text-sm">
+            <div className="rounded-md border border-slate-200">
+              <table className="w-full table-fixed border-collapse text-xs">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="border border-slate-200 px-3 py-2 text-left">모델</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left">담당 엔지니어</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left">시리얼</th>
-                    <th className="border border-slate-200 px-3 py-2 text-right">행</th>
+                    <th className="w-[24%] border border-slate-200 px-2 py-1.5 text-left">모델</th>
+                    <th className="w-[20%] border border-slate-200 px-2 py-1.5 text-left">엔지니어</th>
+                    <th className="w-[44%] border border-slate-200 px-2 py-1.5 text-left">시리얼</th>
+                    <th className="w-[12%] border border-slate-200 px-2 py-1.5 text-right">행</th>
                   </tr>
                 </thead>
                 <tbody>
                   {draft.serials.map((serial, index) => (
                     <tr key={`${serial}-${index}`}>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={draft.model}
                           onChange={(e) => setDraft((p) => ({ ...p, model: e.target.value }))}
                         />
                       </td>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={draft.engineer}
                           onChange={(e) => setDraft((p) => ({ ...p, engineer: e.target.value }))}
                         />
                       </td>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={serial}
@@ -153,7 +153,7 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
                           }
                         />
                       </td>
-                      <td className="border border-slate-200 p-2 text-right">
+                      <td className="border border-slate-200 p-1.5 text-right">
                         <Button
                           variant="outline"
                           disabled={!editMode}
@@ -205,21 +205,21 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
             <CardTitle>고객사 담당자 (표 편집)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="overflow-x-auto rounded-md border border-slate-200">
-              <table className="w-full min-w-[760px] border-collapse text-sm">
+            <div className="rounded-md border border-slate-200">
+              <table className="w-full table-fixed border-collapse text-xs">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="border border-slate-200 px-3 py-2 text-left">이름</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left">부서</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left">전화번호</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left">이메일</th>
-                    <th className="border border-slate-200 px-3 py-2 text-right">행</th>
+                    <th className="w-[16%] border border-slate-200 px-2 py-1.5 text-left">이름</th>
+                    <th className="w-[16%] border border-slate-200 px-2 py-1.5 text-left">부서</th>
+                    <th className="w-[22%] border border-slate-200 px-2 py-1.5 text-left">전화번호</th>
+                    <th className="w-[34%] border border-slate-200 px-2 py-1.5 text-left">이메일</th>
+                    <th className="w-[12%] border border-slate-200 px-2 py-1.5 text-right">행</th>
                   </tr>
                 </thead>
                 <tbody>
                   {draft.contacts.map((contact, index) => (
                     <tr key={`${contact.email}-${index}`}>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={contact.name}
@@ -231,7 +231,7 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
                           }
                         />
                       </td>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={contact.team}
@@ -243,7 +243,7 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
                           }
                         />
                       </td>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={contact.phone}
@@ -255,7 +255,7 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
                           }
                         />
                       </td>
-                      <td className="border border-slate-200 p-2">
+                      <td className="border border-slate-200 p-1.5">
                         <Input
                           disabled={!editMode}
                           value={contact.email}
@@ -267,7 +267,7 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
                           }
                         />
                       </td>
-                      <td className="border border-slate-200 p-2 text-right">
+                      <td className="border border-slate-200 p-1.5 text-right">
                         <Button
                           variant="outline"
                           disabled={!editMode}
