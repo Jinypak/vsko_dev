@@ -28,34 +28,46 @@ export function getDb() {
   return drizzle(g.__vskoSqlClient, { schema });
 }
 
+async function tableExists(tableName: 'customers' | 'traffic_events') {
+  const db = getDb();
+  const result = await db.execute<{ exists: string | null }>(
+    sql`SELECT to_regclass(${`public.${tableName}`}) as exists`,
+  );
+
+  return Boolean(result.rows[0]?.exists);
+}
+
 export async function ensureCoreTables() {
   if (g.__vskoCoreTablesReady) return;
 
   const db = getDb();
 
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS customers (
-      id text PRIMARY KEY,
-      name text NOT NULL,
-      hsm_count integer NOT NULL DEFAULT 0,
-      model text NOT NULL DEFAULT '',
-      serials jsonb NOT NULL DEFAULT '[]'::jsonb,
-      engineer text NOT NULL DEFAULT '',
-      contacts jsonb NOT NULL DEFAULT '[]'::jsonb,
-      histories jsonb NOT NULL DEFAULT '[]'::jsonb
-    );
-  `);
+  const hasCustomers = await tableExists('customers');
+  if (!hasCustomers) {
+    await db.execute(sql`
+      CREATE TABLE customers (
+        id text PRIMARY KEY,
+        name text NOT NULL,
+        hsm_count integer NOT NULL DEFAULT 0,
+        model text NOT NULL DEFAULT '',
+        serials jsonb NOT NULL DEFAULT '[]'::jsonb,
+        engineer text NOT NULL DEFAULT '',
+        contacts jsonb NOT NULL DEFAULT '[]'::jsonb,
+        histories jsonb NOT NULL DEFAULT '[]'::jsonb
+      );
+    `);
+  }
 
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS traffic_events (
-      id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      path text NOT NULL,
-      visited_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS traffic_events_visited_at_idx ON traffic_events (visited_at);`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS traffic_events_path_idx ON traffic_events (path);`);
+  const hasTrafficEvents = await tableExists('traffic_events');
+  if (!hasTrafficEvents) {
+    await db.execute(sql`
+      CREATE TABLE traffic_events (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        path text NOT NULL,
+        visited_at timestamptz NOT NULL DEFAULT now()
+      );
+    `);
+  }
 
   g.__vskoCoreTablesReady = true;
 }

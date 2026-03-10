@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
     const created = await repository.create({ name: trimmed });
 
     return NextResponse.json(created, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : '고객사 생성 중 오류가 발생했습니다.' },
+      { message: '고객사 생성 중 오류가 발생했습니다. DB 권한/테이블 상태를 확인해 주세요.' },
       { status: 500 },
     );
   }
