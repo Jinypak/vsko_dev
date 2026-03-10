@@ -1,5 +1,6 @@
 export type CustomerHistory = {
   dateTime: string;
+  category: 'work' | 'inspection' | 'consulting' | 'etc';
   title: string;
   note?: string;
 };

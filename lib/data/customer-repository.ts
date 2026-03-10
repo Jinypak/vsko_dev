@@ -8,6 +8,7 @@ export type CustomerPatch = Partial<
 >;
 
 export type NewHistoryInput = {
+  category: 'work' | 'inspection' | 'consulting' | 'etc';
   title: string;
   note?: string;
 };
@@ -34,9 +35,9 @@ class InMemoryCustomerRepository implements CustomerRepository {
   }
 
   async list(query?: string): Promise<Customer[]> {
-    if (!query) return this.data;
+    if (!query) return this.data.slice(0, 200);
     const q = query.toLowerCase();
-    return this.data.filter((customer) => customer.name.toLowerCase().includes(q));
+    return this.data.filter((customer) => customer.name.toLowerCase().startsWith(q)).slice(0, 200);
   }
 
   async getById(id: string): Promise<Customer | null> {
@@ -87,6 +88,7 @@ class InMemoryCustomerRepository implements CustomerRepository {
 
     target.histories.unshift({
       dateTime,
+      category: payload.category,
       title: payload.title,
       note: payload.note,
     });
@@ -97,6 +99,11 @@ class InMemoryCustomerRepository implements CustomerRepository {
 
 class DrizzleCustomerRepository implements CustomerRepository {
   private mapRow(row: typeof customersTable.$inferSelect): Customer {
+    const normalizedHistories = (row.histories ?? []).map((history) => ({
+      ...history,
+      category: history.category ?? 'etc',
+    }));
+
     return {
       id: row.id,
       name: row.name,
@@ -105,18 +112,21 @@ class DrizzleCustomerRepository implements CustomerRepository {
       serials: row.serials ?? [],
       engineer: row.engineer,
       contacts: row.contacts ?? [],
-      histories: row.histories ?? [],
+      histories: normalizedHistories,
     };
   }
 
   async list(query?: string): Promise<Customer[]> {
     await ensureCoreTables();
     const db = getDb();
+    const normalized = query?.trim();
+
     const rows = await db
       .select()
       .from(customersTable)
-      .where(query ? ilike(customersTable.name, `%${query}%`) : undefined)
-      .orderBy(asc(customersTable.name));
+      .where(normalized ? ilike(customersTable.name, `${normalized}%`) : undefined)
+      .orderBy(asc(customersTable.name))
+      .limit(200);
 
     return rows.map((row) => this.mapRow(row));
   }
@@ -186,7 +196,10 @@ class DrizzleCustomerRepository implements CustomerRepository {
       now.getDate(),
     ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    const updatedHistories = [{ dateTime, title: payload.title, note: payload.note }, ...existing.histories];
+    const updatedHistories = [
+      { dateTime, category: payload.category, title: payload.title, note: payload.note },
+      ...existing.histories,
+    ];
 
     await ensureCoreTables();
     const db = getDb();

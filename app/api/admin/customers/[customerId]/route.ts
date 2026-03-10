@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCustomerRepository } from '@/lib/data/customer-repository';
 
+export const preferredRegion = 'sin1';
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ customerId: string }> },

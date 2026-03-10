@@ -7,7 +7,7 @@ const items = [
 
 export default function AdminDashboardNav() {
   return (
-    <aside className="w-full rounded-2xl border border-slate-200 bg-white p-4 md:w-64 md:shrink-0">
+    <aside className="w-full rounded-2xl border border-slate-200 bg-white p-3 md:w-52 md:shrink-0 lg:w-56">
       <p className="px-2 pb-3 text-sm font-semibold text-slate-900">관리자 메뉴</p>
       <nav className="flex flex-col gap-1">
         {items.map((item) => (
