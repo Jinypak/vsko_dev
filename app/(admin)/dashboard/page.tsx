@@ -20,20 +20,36 @@ export default async function AdminDashboardPage() {
   let hsmTotal = 0;
   let traffic = emptyTrafficSummary;
 
-  try {
-    const [customers, trafficSummary] = await Promise.all([
-      getCustomerRepository().list(),
-      getTrafficRepository().getSummary(),
-    ]);
+  const [customersResult, trafficResult] = await Promise.allSettled([
+    getCustomerRepository().list(),
+    getTrafficRepository().getSummary(),
+  ]);
 
-    customerCount = customers.length;
-    hsmTotal = customers.reduce((sum, customer) => sum + customer.hsmCount, 0);
-    traffic = trafficSummary;
-  } catch (error) {
-    errorMessage =
-      error instanceof Error
-        ? error.message
-        : '통계 데이터를 불러오지 못했습니다. 환경변수를 확인해 주세요.';
+  const errors: string[] = [];
+
+  if (customersResult.status === 'fulfilled') {
+    customerCount = customersResult.value.length;
+    hsmTotal = customersResult.value.reduce((sum, customer) => sum + customer.hsmCount, 0);
+  } else {
+    errors.push(
+      customersResult.reason instanceof Error
+        ? customersResult.reason.message
+        : '고객사 데이터를 불러오지 못했습니다.',
+    );
+  }
+
+  if (trafficResult.status === 'fulfilled') {
+    traffic = trafficResult.value;
+  } else {
+    errors.push(
+      trafficResult.reason instanceof Error
+        ? trafficResult.reason.message
+        : '접속 통계 데이터를 불러오지 못했습니다.',
+    );
+  }
+
+  if (errors.length > 0) {
+    errorMessage = errors.join(' | ');
   }
 
   const stats = [
@@ -64,7 +80,7 @@ export default async function AdminDashboardPage() {
               <CardContent>
                 <p className="text-sm text-red-700">{errorMessage}</p>
                 <p className="mt-2 text-xs text-red-600">
-                  `.env.local`에 `DATA_PROVIDER`, `NEXT_PUBLIC_SUPABASE_URL`, Supabase 키를 확인한 뒤 서버를 재시작해 주세요.
+                  `.env.local`에 `DATABASE_URL`(Neon pooled/direct)을 설정한 뒤 서버를 재시작해 주세요.
                 </p>
               </CardContent>
             </Card>
