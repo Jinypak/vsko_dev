@@ -1,6 +1,6 @@
 import { asc, eq, ilike } from 'drizzle-orm';
 import { customers as seedCustomers, type Customer } from '@/lib/admin-data';
-import { getDb } from '@/lib/db/client';
+import { ensureCoreTables, getDb } from '@/lib/db/client';
 import { customersTable } from '@/lib/db/schema';
 
 export type CustomerPatch = Partial<
@@ -84,6 +84,7 @@ class DrizzleCustomerRepository implements CustomerRepository {
   }
 
   async list(query?: string): Promise<Customer[]> {
+    await ensureCoreTables();
     const db = getDb();
     const rows = await db
       .select()
@@ -95,12 +96,14 @@ class DrizzleCustomerRepository implements CustomerRepository {
   }
 
   async getById(id: string): Promise<Customer | null> {
+    await ensureCoreTables();
     const db = getDb();
     const rows = await db.select().from(customersTable).where(eq(customersTable.id, id)).limit(1);
     return rows[0] ? this.mapRow(rows[0]) : null;
   }
 
   async updateById(id: string, patch: CustomerPatch): Promise<Customer | null> {
+    await ensureCoreTables();
     const db = getDb();
 
     const payload: Partial<typeof customersTable.$inferInsert> = {};
@@ -129,6 +132,7 @@ class DrizzleCustomerRepository implements CustomerRepository {
 
     const updatedHistories = [{ dateTime, title: payload.title, note: payload.note }, ...existing.histories];
 
+    await ensureCoreTables();
     const db = getDb();
     const rows = await db
       .update(customersTable)

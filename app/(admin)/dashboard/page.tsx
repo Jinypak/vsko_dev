@@ -15,7 +15,6 @@ const emptyTrafficSummary: TrafficSummary = {
 };
 
 export default async function AdminDashboardPage() {
-  let errorMessage: string | null = null;
   let customerCount = 0;
   let hsmTotal = 0;
   let traffic = emptyTrafficSummary;
@@ -25,31 +24,13 @@ export default async function AdminDashboardPage() {
     getTrafficRepository().getSummary(),
   ]);
 
-  const errors: string[] = [];
-
   if (customersResult.status === 'fulfilled') {
     customerCount = customersResult.value.length;
     hsmTotal = customersResult.value.reduce((sum, customer) => sum + customer.hsmCount, 0);
-  } else {
-    errors.push(
-      customersResult.reason instanceof Error
-        ? customersResult.reason.message
-        : '고객사 데이터를 불러오지 못했습니다.',
-    );
   }
 
   if (trafficResult.status === 'fulfilled') {
     traffic = trafficResult.value;
-  } else {
-    errors.push(
-      trafficResult.reason instanceof Error
-        ? trafficResult.reason.message
-        : '접속 통계 데이터를 불러오지 못했습니다.',
-    );
-  }
-
-  if (errors.length > 0) {
-    errorMessage = errors.join(' | ');
   }
 
   const stats = [
@@ -72,20 +53,6 @@ export default async function AdminDashboardPage() {
         <AdminDashboardNav />
 
         <section className="flex-1 space-y-6">
-          {errorMessage && (
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="text-red-700">설정 오류 안내</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-red-700">{errorMessage}</p>
-                <p className="mt-2 text-xs text-red-600">
-                  `.env.local`에 `DATABASE_URL`(Neon pooled/direct)을 설정한 뒤 서버를 재시작해 주세요.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
           <div className="grid gap-4 md:grid-cols-3">
             {stats.map((stat) => (
               <Card key={stat.label} className="bg-white/90">
@@ -148,7 +115,7 @@ export default async function AdminDashboardPage() {
             <CardContent>
               <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-600">
                 <li>현재 접속량은 방문 이벤트 기반(페이지 진입 1회)으로 집계됩니다.</li>
-                <li>정확한 운영 통계를 위해 Supabase의 `traffic_events` 테이블 연결을 권장합니다.</li>
+                <li>정확한 운영 통계를 위해 Neon + Drizzle `traffic_events` 테이블 연결을 권장합니다.</li>
               </ul>
               <Link
                 href="/dashboard/customers"

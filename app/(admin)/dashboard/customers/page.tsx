@@ -20,16 +20,12 @@ export default async function CustomerListPage({
   const repositoryInfo = getCustomerRepositoryInfo();
 
   let filteredCustomers: Customer[] = [];
-  let errorMessage: string | null = null;
 
   try {
     const repository = getCustomerRepository();
     filteredCustomers = await repository.list(query);
-  } catch (error) {
-    errorMessage =
-      error instanceof Error
-        ? error.message
-        : '고객사 목록을 불러오지 못했습니다. 환경변수를 확인해 주세요.';
+  } catch {
+    filteredCustomers = [];
   }
 
   return (
@@ -43,16 +39,17 @@ export default async function CustomerListPage({
         <AdminDashboardNav />
 
         <section className="flex-1 space-y-4">
-          {errorMessage && (
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="text-base text-red-700">설정 오류 안내</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-red-700">{errorMessage}</p>
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">현재 데이터 소스</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm text-slate-600">
+              <p>provider: {repositoryInfo.provider}</p>
+              <p>mode: {repositoryInfo.provider === 'drizzle' ? 'DATABASE_URL(Neon/Drizzle)' : 'memory fallback'}</p>
+              {repositoryInfo.table && <p>table: {repositoryInfo.table}</p>}
+              {repositoryInfo.dbHost && <p>db host: {repositoryInfo.dbHost}</p>}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -97,7 +94,7 @@ export default async function CustomerListPage({
             ))}
           </div>
 
-          {filteredCustomers.length === 0 && !errorMessage && (
+          {filteredCustomers.length === 0 && (
             <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-muted-foreground">
               검색 결과가 없습니다.
             </p>

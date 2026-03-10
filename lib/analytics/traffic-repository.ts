@@ -1,5 +1,5 @@
 import { asc, gte } from 'drizzle-orm';
-import { getDb } from '@/lib/db/client';
+import { ensureCoreTables, getDb } from '@/lib/db/client';
 import { trafficEventsTable } from '@/lib/db/schema';
 
 export type TrafficEvent = {
@@ -48,6 +48,7 @@ class InMemoryTrafficRepository implements TrafficRepository {
 
 class DrizzleTrafficRepository implements TrafficRepository {
   async track(path: string): Promise<void> {
+    await ensureCoreTables();
     const db = getDb();
     await db.insert(trafficEventsTable).values({ path });
   }
@@ -56,6 +57,7 @@ class DrizzleTrafficRepository implements TrafficRepository {
     const from = startOfDayBefore(6);
 
     try {
+      await ensureCoreTables();
       const db = getDb();
       const rows = await db
         .select({

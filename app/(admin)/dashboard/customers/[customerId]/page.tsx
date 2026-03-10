@@ -46,12 +46,7 @@ export default async function CustomerDetailPage({
         </Link>
       </main>
     );
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : '고객사 상세 데이터를 불러오는 중 오류가 발생했습니다.';
-
+  } catch {
     return (
       <main className="mx-auto w-full max-w-6xl px-6 py-12">
         <div className="mb-6">
@@ -66,7 +61,7 @@ export default async function CustomerDetailPage({
               <CardTitle className="text-red-700">설정 오류 안내</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-red-700">{message}</p>
+              <p className="text-sm text-red-700">고객사 상세 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
             </CardContent>
           </Card>
         </div>
