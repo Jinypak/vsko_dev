@@ -17,11 +17,12 @@ export default function SignInPage() {
   const [otp, setOtp] = useState('');
   const [otpRequested, setOtpRequested] = useState(false);
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const router = useRouter();
 
   const requestOtp = async () => {
-    setLoading(true);
+    setRequestLoading(true);
     setMessage('');
     const url = method === 'email' ? '/api/auth/request-otp' : '/api/auth/request-kakao-otp';
     const payload = method === 'email' ? { email } : { phone };
@@ -42,12 +43,17 @@ export default function SignInPage() {
       setOtpRequested(true);
       setMessage(`${result.message}${result.devOtp ? ` / 테스트 OTP: ${result.devOtp}` : ''}`);
     } finally {
-      setLoading(false);
+      setRequestLoading(false);
     }
   };
 
   const verifyOtp = async () => {
-    setLoading(true);
+    if (!otp.trim()) {
+      setMessage('OTP 코드를 입력해 주세요.');
+      return;
+    }
+
+    setVerifyLoading(true);
     setMessage('');
 
     try {
@@ -66,7 +72,7 @@ export default function SignInPage() {
       router.push('/dashboard');
       router.refresh();
     } finally {
-      setLoading(false);
+      setVerifyLoading(false);
     }
   };
 
@@ -133,24 +139,45 @@ export default function SignInPage() {
               </div>
             )}
 
-            <Button onClick={requestOtp} disabled={loading} className="w-full">
+            <Button onClick={requestOtp} disabled={requestLoading || verifyLoading} className="w-full">
               OTP 요청
             </Button>
 
             {otpRequested && (
-              <div className="space-y-3 rounded-lg border border-primary/15 bg-white/90 p-4">
+              <form
+                className="space-y-3 rounded-lg border border-primary/15 bg-white/90 p-4"
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  await verifyOtp();
+                }}
+              >
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">OTP 코드 (6자리)</label>
                   <Input
                     value={otp}
                     onChange={(event) => setOtp(event.target.value)}
                     placeholder="예: 123456"
+                    inputMode="numeric"
+                    onKeyDown={async (event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        await verifyOtp();
+                      }
+                    }}
                   />
                 </div>
-                <Button variant="secondary" onClick={verifyOtp} disabled={loading} className="w-full gap-2">
+
+                {verifyLoading && (
+                  <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+                  </div>
+                )}
+
+                <Button type="submit" variant="secondary" disabled={requestLoading || verifyLoading} className="w-full gap-2">
                   <KeyRound className="h-4 w-4" /> 로그인
                 </Button>
-              </div>
+              </form>
             )}
 
             {message && <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">{message}</p>}

@@ -1,6 +1,13 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+const DEFAULT_DEV_JWT_SECRET = 'local-dev-auth-jwt-secret';
+const NODE_ENV_TO_SECRET_KEY: Record<string, string> = {
+  production: 'AUTH_JWT_SECRET_PRODUCTION',
+  development: 'AUTH_JWT_SECRET_DEVELOPMENT',
+  test: 'AUTH_JWT_SECRET_TEST',
+};
+
 type JwtPayload = {
   sub: string;
   channel: 'email' | 'kakao';
@@ -62,8 +69,26 @@ async function verifyHmacSha256(content: string, signature: Uint8Array, secret: 
   return crypto.subtle.verify('HMAC', key, signature, encoder.encode(content));
 }
 
+function getTrimmedEnv(name: string) {
+  return process.env[name]?.trim() ?? '';
+}
+
 export function getAuthJwtSecret() {
-  return process.env.AUTH_JWT_SECRET ?? '';
+  const env = process.env.NODE_ENV ?? 'development';
+  const commonSecret = getTrimmedEnv('AUTH_JWT_SECRET');
+  if (commonSecret) return commonSecret;
+
+  const envSpecificKey = NODE_ENV_TO_SECRET_KEY[env];
+  if (envSpecificKey) {
+    const envSpecificSecret = getTrimmedEnv(envSpecificKey);
+    if (envSpecificSecret) return envSpecificSecret;
+  }
+
+  if (env === 'development') {
+    return DEFAULT_DEV_JWT_SECRET;
+  }
+
+  return '';
 }
 
 export async function createAdminSessionJwt(payload: {
