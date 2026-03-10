@@ -60,9 +60,9 @@ export default async function CustomerListPage({
             </CardHeader>
             <CardContent className="space-y-1 text-sm text-slate-600">
               <p>provider: {repositoryInfo.provider}</p>
-              <p>configured(DATA_PROVIDER): {repositoryInfo.configuredProvider || '(empty)'}</p>
+              <p>mode: {repositoryInfo.provider === 'drizzle' ? 'DATABASE_URL(Neon/Drizzle)' : 'memory fallback'}</p>
               {repositoryInfo.table && <p>table: {repositoryInfo.table}</p>}
-              {repositoryInfo.supabaseUrlHost && <p>supabase host: {repositoryInfo.supabaseUrlHost}</p>}
+              {repositoryInfo.dbHost && <p>db host: {repositoryInfo.dbHost}</p>}
             </CardContent>
           </Card>
 

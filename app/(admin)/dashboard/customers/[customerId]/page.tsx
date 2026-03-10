@@ -32,7 +32,7 @@ export default async function CustomerDetailPage({
           <p className="mt-1 text-xs text-slate-400">
             data source: {repositoryInfo.provider}
             {repositoryInfo.table ? ` / ${repositoryInfo.table}` : ''}
-            {repositoryInfo.supabaseUrlHost ? ` / ${repositoryInfo.supabaseUrlHost}` : ''}
+            {repositoryInfo.dbHost ? ` / ${repositoryInfo.dbHost}` : ''}
           </p>
         </div>
 

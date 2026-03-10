@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
               <CardContent>
                 <p className="text-sm text-red-700">{errorMessage}</p>
                 <p className="mt-2 text-xs text-red-600">
-                  `.env.local`에 `DATA_PROVIDER`, `NEXT_PUBLIC_SUPABASE_URL`, Supabase 키를 확인한 뒤 서버를 재시작해 주세요.
+                  `.env.local`에 `DATABASE_URL`(Neon pooled/direct)을 설정한 뒤 서버를 재시작해 주세요.
                 </p>
               </CardContent>
             </Card>

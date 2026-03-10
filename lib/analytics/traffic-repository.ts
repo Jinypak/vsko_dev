@@ -1,3 +1,7 @@
+import { asc, gte } from 'drizzle-orm';
+import { getDb } from '@/lib/db/client';
+import { trafficEventsTable } from '@/lib/db/schema';
+
 export type TrafficEvent = {
   path: string;
   visitedAt: string;
@@ -42,82 +46,35 @@ class InMemoryTrafficRepository implements TrafficRepository {
   }
 }
 
-type SupabaseTrafficRow = {
-  path: string;
-  visited_at: string;
-};
-
-async function parseSupabaseError(response: Response) {
-  const fallback = `status=${response.status}`;
-
-  try {
-    const payload = (await response.json()) as {
-      message?: string;
-      hint?: string;
-      code?: string;
-    };
-
-    return [payload.code, payload.message, payload.hint]
-      .filter(Boolean)
-      .join(' | ') || fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-class SupabaseTrafficRepository implements TrafficRepository {
-  constructor(
-    private readonly url: string,
-    private readonly key: string,
-    private readonly table: string,
-  ) {}
-
-  private headers() {
-    return {
-      apikey: this.key,
-      Authorization: `Bearer ${this.key}`,
-      'Content-Type': 'application/json',
-    };
-  }
-
+class DrizzleTrafficRepository implements TrafficRepository {
   async track(path: string): Promise<void> {
-    const response = await fetch(`${this.url}/rest/v1/${this.table}`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify({ path }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Supabase traffic track failed: ${await parseSupabaseError(response)}`);
-    }
+    const db = getDb();
+    await db.insert(trafficEventsTable).values({ path });
   }
 
   async getSummary(): Promise<TrafficSummary> {
-    const from = startOfDayBefore(6).toISOString();
-    const requestUrl = `${this.url}/rest/v1/${this.table}?select=path,visited_at&visited_at=gte.${encodeURIComponent(from)}&order=visited_at.asc`;
+    const from = startOfDayBefore(6);
 
     try {
-      const response = await fetch(requestUrl, {
-        headers: this.headers(),
-        cache: 'no-store',
-      });
+      const db = getDb();
+      const rows = await db
+        .select({
+          path: trafficEventsTable.path,
+          visitedAt: trafficEventsTable.visitedAt,
+        })
+        .from(trafficEventsTable)
+        .where(gte(trafficEventsTable.visitedAt, from))
+        .orderBy(asc(trafficEventsTable.visitedAt));
 
-      if (!response.ok) {
-        throw new Error(`Supabase traffic summary failed: ${await parseSupabaseError(response)} | url=${requestUrl}`);
-      }
-
-      const rows = (await response.json()) as SupabaseTrafficRow[];
       const events: TrafficEvent[] = rows.map((row) => ({
         path: row.path,
-        visitedAt: row.visited_at,
+        visitedAt: new Date(row.visitedAt).toISOString(),
       }));
 
       return summarizeEvents(events);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Supabase traffic summary fetch failed | baseUrl=${this.url} | table=${this.table} | from=${from} | detail=${message}`,
-      );
+      throw new Error(`Drizzle traffic summary fetch failed | table=traffic_events | from=${from.toISOString()} | detail=${message}`);
     }
   }
 }
@@ -186,30 +143,9 @@ type GlobalStore = typeof globalThis & {
 
 const g = globalThis as GlobalStore;
 
-function resolveSupabaseConnection() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
-
-  return { url, key };
-}
-
 function createRepository(): TrafficRepository {
-  const provider = (process.env.DATA_PROVIDER ?? 'memory').toLowerCase();
-
-  if (provider === 'supabase') {
-    const { url, key } = resolveSupabaseConnection();
-
-    if (url && key) {
-      return new SupabaseTrafficRepository(
-        url,
-        key,
-        process.env.SUPABASE_TRAFFIC_TABLE ?? 'traffic_events',
-      );
-    }
+  if (process.env.DATABASE_URL?.trim()) {
+    return new DrizzleTrafficRepository();
   }
 
   return new InMemoryTrafficRepository();
