@@ -16,6 +16,13 @@ export interface CustomerRepository {
   addHistory(id: string, payload: NewHistoryInput): Promise<Customer | null>;
 }
 
+export type CustomerRepositoryInfo = {
+  provider: 'memory' | 'supabase';
+  configuredProvider: string;
+  table?: string;
+  supabaseUrlHost?: string;
+};
+
 class InMemoryCustomerRepository implements CustomerRepository {
   private data: Customer[];
 
@@ -203,6 +210,7 @@ class SupabaseCustomerRepository implements CustomerRepository {
 
 type GlobalStore = typeof globalThis & {
   __vskoCustomerRepository?: CustomerRepository;
+  __vskoCustomerRepositoryInfo?: CustomerRepositoryInfo;
 };
 
 const g = globalThis as GlobalStore;
@@ -218,7 +226,7 @@ function resolveSupabaseConnection() {
   return { url, key };
 }
 
-function createRepository(): CustomerRepository {
+function createRepository(): { repository: CustomerRepository; info: CustomerRepositoryInfo } {
   const configuredProvider = (process.env.DATA_PROVIDER ?? '').trim().toLowerCase();
   const { url, key } = resolveSupabaseConnection();
 
@@ -233,17 +241,41 @@ function createRepository(): CustomerRepository {
       );
     }
 
-    return new SupabaseCustomerRepository(url, key, table);
+    return {
+      repository: new SupabaseCustomerRepository(url, key, table),
+      info: {
+        provider: 'supabase',
+        configuredProvider,
+        table,
+        supabaseUrlHost: new URL(url).host,
+      },
+    };
   }
 
   // TODO: DATA_PROVIDER=prisma 구현 연결
-  return new InMemoryCustomerRepository(seedCustomers);
+  return {
+    repository: new InMemoryCustomerRepository(seedCustomers),
+    info: {
+      provider: 'memory',
+      configuredProvider,
+    },
+  };
 }
 
 export function getCustomerRepository() {
-  if (!g.__vskoCustomerRepository) {
-    g.__vskoCustomerRepository = createRepository();
+  if (!g.__vskoCustomerRepository || !g.__vskoCustomerRepositoryInfo) {
+    const created = createRepository();
+    g.__vskoCustomerRepository = created.repository;
+    g.__vskoCustomerRepositoryInfo = created.info;
   }
 
   return g.__vskoCustomerRepository;
+}
+
+export function getCustomerRepositoryInfo(): CustomerRepositoryInfo {
+  if (!g.__vskoCustomerRepositoryInfo) {
+    getCustomerRepository();
+  }
+
+  return g.__vskoCustomerRepositoryInfo ?? { provider: 'memory', configuredProvider: '' };
 }
