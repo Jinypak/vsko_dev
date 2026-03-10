@@ -1,21 +1,27 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Customer } from '@/lib/admin-data';
+import type { Customer, CustomerHistory } from '@/lib/admin-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-type VerificationLog = {
-  time: string;
-  action: 'PATCH' | 'POST';
-  result: string;
-};
+type HistoryCategory = CustomerHistory['category'];
 
-function nowTime() {
-  return new Date().toLocaleTimeString('ko-KR', { hour12: false });
-}
+const historyCategoryOptions: Array<{ value: HistoryCategory; label: string }> = [
+  { value: 'work', label: '작업' },
+  { value: 'inspection', label: '점검' },
+  { value: 'consulting', label: '상담' },
+  { value: 'etc', label: '기타' },
+];
+
+const historyCategoryLabelMap: Record<HistoryCategory, string> = {
+  work: '작업',
+  inspection: '점검',
+  consulting: '상담',
+  etc: '기타',
+};
 
 export default function CustomerDetailEditor({ customer }: { customer: Customer }) {
   const router = useRouter();
@@ -23,75 +29,9 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
   const [draft, setDraft] = useState(customer);
   const [newHistoryTitle, setNewHistoryTitle] = useState('');
   const [newHistoryNote, setNewHistoryNote] = useState('');
+  const [newHistoryCategory, setNewHistoryCategory] = useState<HistoryCategory>('work');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationLogs, setVerificationLogs] = useState<VerificationLog[]>([]);
-
-  const serialText = useMemo(() => draft.serials.join(', '), [draft.serials]);
-
-  const appendLog = (log: VerificationLog) => {
-    setVerificationLogs((prev) => [log, ...prev].slice(0, 8));
-  };
-
-  const collectPatchMismatches = (latest: Customer, expected: Customer) => {
-    const mismatches: string[] = [];
-
-    if (latest.hsmCount !== expected.hsmCount) mismatches.push(`hsmCount(${latest.hsmCount} != ${expected.hsmCount})`);
-    if (latest.model !== expected.model) mismatches.push(`model(${latest.model} != ${expected.model})`);
-    if (latest.engineer !== expected.engineer) mismatches.push(`engineer(${latest.engineer} != ${expected.engineer})`);
-    if (JSON.stringify(latest.serials) !== JSON.stringify(expected.serials)) mismatches.push('serials');
-    if (JSON.stringify(latest.contacts) !== JSON.stringify(expected.contacts)) mismatches.push('contacts');
-
-    return mismatches;
-  };
-
-  const verifyAfterPatch = async (expected: Customer) => {
-    const getResponse = await fetch(`/api/admin/customers/${expected.id}`, { cache: 'no-store' });
-    const latest = (await getResponse.json().catch(() => null)) as Customer | null;
-
-    if (!getResponse.ok || !latest) {
-      appendLog({
-        time: nowTime(),
-        action: 'PATCH',
-        result: `검증 실패: GET 재조회 오류 (status ${getResponse.status})`,
-      });
-      return;
-    }
-
-    const mismatches = collectPatchMismatches(latest, expected);
-
-    appendLog({
-      time: nowTime(),
-      action: 'PATCH',
-      result:
-        mismatches.length === 0
-          ? '검증 성공: PATCH 후 GET 값이 반영되었습니다.'
-          : `검증 경고: PATCH 후 GET 불일치 [${mismatches.join(', ')}]`,
-    });
-  };
-
-  const verifyAfterAddHistory = async (expectedHistoryCount: number) => {
-    const getResponse = await fetch(`/api/admin/customers/${draft.id}`, { cache: 'no-store' });
-    const latest = (await getResponse.json().catch(() => null)) as Customer | null;
-
-    if (!getResponse.ok || !latest) {
-      appendLog({
-        time: nowTime(),
-        action: 'POST',
-        result: `검증 실패: GET 재조회 오류 (status ${getResponse.status})`,
-      });
-      return;
-    }
-
-    appendLog({
-      time: nowTime(),
-      action: 'POST',
-      result:
-        latest.histories.length === expectedHistoryCount
-          ? '검증 성공: 기록 추가 후 GET 히스토리 개수가 일치합니다.'
-          : `검증 경고: 기록 추가 후 GET 히스토리 개수 불일치 (${latest.histories.length} != ${expectedHistoryCount})`,
-    });
-  };
 
   const saveChanges = async () => {
     setLoading(true);
@@ -112,7 +52,6 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       const payload = (await response.json().catch(() => null)) as { message?: string } | Customer | null;
       if (!response.ok) {
         setStatus(payload && 'message' in payload && payload.message ? payload.message : '저장에 실패했습니다.');
-        appendLog({ time: nowTime(), action: 'PATCH', result: `PATCH 실패 (status ${response.status})` });
         return;
       }
 
@@ -120,7 +59,6 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       setDraft(updatedCustomer);
       setStatus('변경사항이 저장되었습니다.');
       setEditMode(false);
-      await verifyAfterPatch(updatedCustomer);
       router.refresh();
     } finally {
       setLoading(false);
@@ -136,13 +74,12 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       const response = await fetch(`/api/admin/customers/${draft.id}/histories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newHistoryTitle, note: newHistoryNote }),
+        body: JSON.stringify({ title: newHistoryTitle, note: newHistoryNote, category: newHistoryCategory }),
       });
 
       const payload = (await response.json().catch(() => null)) as { message?: string } | Customer | null;
       if (!response.ok) {
         setStatus(payload && 'message' in payload && payload.message ? payload.message : '기록 추가에 실패했습니다.');
-        appendLog({ time: nowTime(), action: 'POST', result: `POST 실패 (status ${response.status})` });
         return;
       }
 
@@ -150,8 +87,8 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       setDraft(updatedCustomer);
       setNewHistoryTitle('');
       setNewHistoryNote('');
+      setNewHistoryCategory('work');
       setStatus('새 기록이 추가되었습니다.');
-      await verifyAfterAddHistory(updatedCustomer.histories.length);
       router.refresh();
     } finally {
       setLoading(false);
@@ -171,122 +108,206 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
 
       {status && <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{status}</p>}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>임시 반영 검증 로그</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-slate-600">
-          {verificationLogs.length === 0 && <p>아직 검증 로그가 없습니다.</p>}
-          {verificationLogs.map((log, index) => (
-            <p key={`${log.time}-${log.action}-${index}`}>
-              [{log.time}] {log.action} - {log.result}
-            </p>
-          ))}
-        </CardContent>
-      </Card>
-
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>도입 장비 정보</CardTitle>
+            <CardTitle>도입 장비 정보 (표 편집)</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-600">
-            <label className="block space-y-1">
-              <span>HSM 개수</span>
-              <Input
+          <CardContent className="space-y-3">
+            <div className="overflow-x-auto rounded-md border border-slate-200">
+              <table className="w-full min-w-[640px] border-collapse text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="border border-slate-200 px-3 py-2 text-left">모델</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left">담당 엔지니어</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left">시리얼</th>
+                    <th className="border border-slate-200 px-3 py-2 text-right">행</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {draft.serials.map((serial, index) => (
+                    <tr key={`${serial}-${index}`}>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={draft.model}
+                          onChange={(e) => setDraft((p) => ({ ...p, model: e.target.value }))}
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={draft.engineer}
+                          onChange={(e) => setDraft((p) => ({ ...p, engineer: e.target.value }))}
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={serial}
+                          onChange={(e) =>
+                            setDraft((p) => ({
+                              ...p,
+                              serials: p.serials.map((v, i) => (i === index ? e.target.value : v)),
+                            }))
+                          }
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right">
+                        <Button
+                          variant="outline"
+                          disabled={!editMode}
+                          onClick={() =>
+                            setDraft((p) => ({
+                              ...p,
+                              serials: p.serials.filter((_, i) => i !== index),
+                              hsmCount: Math.max(0, p.serials.length - 1),
+                            }))
+                          }
+                        >
+                          삭제
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {draft.serials.length === 0 && (
+                    <tr>
+                      <td className="border border-slate-200 p-3 text-slate-500" colSpan={4}>
+                        등록된 장비가 없습니다. 편집 모드에서 행을 추가하세요.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-between">
+              <p className="text-xs text-slate-500">현재 장비 수: {draft.hsmCount}대</p>
+              <Button
+                variant="outline"
                 disabled={!editMode}
-                type="number"
-                value={draft.hsmCount}
-                onChange={(e) => setDraft((p) => ({ ...p, hsmCount: Number(e.target.value) || 0 }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span>모델</span>
-              <Input
-                disabled={!editMode}
-                value={draft.model}
-                onChange={(e) => setDraft((p) => ({ ...p, model: e.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span>담당 엔지니어</span>
-              <Input
-                disabled={!editMode}
-                value={draft.engineer}
-                onChange={(e) => setDraft((p) => ({ ...p, engineer: e.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span>SERIAL (콤마로 구분)</span>
-              <Input
-                disabled={!editMode}
-                value={serialText}
-                onChange={(e) =>
+                onClick={() =>
                   setDraft((p) => ({
                     ...p,
-                    serials: e.target.value
-                      .split(',')
-                      .map((v) => v.trim())
-                      .filter(Boolean),
+                    serials: [...p.serials, ''],
+                    hsmCount: p.serials.length + 1,
                   }))
                 }
-              />
-            </label>
+              >
+                장비 행 추가
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>고객사 담당자</CardTitle>
+            <CardTitle>고객사 담당자 (표 편집)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {draft.contacts.map((contact, index) => (
-              <div key={contact.email + index} className="rounded-md border border-slate-100 p-3 text-sm text-slate-600">
-                <Input
-                  disabled={!editMode}
-                  value={contact.name}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      contacts: p.contacts.map((c, i) => (i === index ? { ...c, name: e.target.value } : c)),
-                    }))
-                  }
-                />
-                <Input
-                  className="mt-2"
-                  disabled={!editMode}
-                  value={contact.team}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      contacts: p.contacts.map((c, i) => (i === index ? { ...c, team: e.target.value } : c)),
-                    }))
-                  }
-                />
-                <Input
-                  className="mt-2"
-                  disabled={!editMode}
-                  value={contact.phone}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      contacts: p.contacts.map((c, i) => (i === index ? { ...c, phone: e.target.value } : c)),
-                    }))
-                  }
-                />
-                <Input
-                  className="mt-2"
-                  disabled={!editMode}
-                  value={contact.email}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      contacts: p.contacts.map((c, i) => (i === index ? { ...c, email: e.target.value } : c)),
-                    }))
-                  }
-                />
-              </div>
-            ))}
+            <div className="overflow-x-auto rounded-md border border-slate-200">
+              <table className="w-full min-w-[760px] border-collapse text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="border border-slate-200 px-3 py-2 text-left">이름</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left">부서</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left">전화번호</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left">이메일</th>
+                    <th className="border border-slate-200 px-3 py-2 text-right">행</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {draft.contacts.map((contact, index) => (
+                    <tr key={`${contact.email}-${index}`}>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={contact.name}
+                          onChange={(e) =>
+                            setDraft((p) => ({
+                              ...p,
+                              contacts: p.contacts.map((c, i) => (i === index ? { ...c, name: e.target.value } : c)),
+                            }))
+                          }
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={contact.team}
+                          onChange={(e) =>
+                            setDraft((p) => ({
+                              ...p,
+                              contacts: p.contacts.map((c, i) => (i === index ? { ...c, team: e.target.value } : c)),
+                            }))
+                          }
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={contact.phone}
+                          onChange={(e) =>
+                            setDraft((p) => ({
+                              ...p,
+                              contacts: p.contacts.map((c, i) => (i === index ? { ...c, phone: e.target.value } : c)),
+                            }))
+                          }
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2">
+                        <Input
+                          disabled={!editMode}
+                          value={contact.email}
+                          onChange={(e) =>
+                            setDraft((p) => ({
+                              ...p,
+                              contacts: p.contacts.map((c, i) => (i === index ? { ...c, email: e.target.value } : c)),
+                            }))
+                          }
+                        />
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right">
+                        <Button
+                          variant="outline"
+                          disabled={!editMode}
+                          onClick={() =>
+                            setDraft((p) => ({
+                              ...p,
+                              contacts: p.contacts.filter((_, i) => i !== index),
+                            }))
+                          }
+                        >
+                          삭제
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {draft.contacts.length === 0 && (
+                    <tr>
+                      <td className="border border-slate-200 p-3 text-slate-500" colSpan={5}>
+                        담당자가 없습니다. 편집 모드에서 행을 추가하세요.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                disabled={!editMode}
+                onClick={() =>
+                  setDraft((p) => ({
+                    ...p,
+                    contacts: [...p.contacts, { name: '', team: '', phone: '', email: '' }],
+                  }))
+                }
+              >
+                담당자 행 추가
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -294,7 +315,18 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
       <Card>
         <CardHeader className="space-y-2">
           <CardTitle>작업/상담 히스토리</CardTitle>
-          <div className="grid gap-2 md:grid-cols-[1fr_2fr_auto]">
+          <div className="grid gap-2 md:grid-cols-[140px_1fr_2fr_auto]">
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={newHistoryCategory}
+              onChange={(e) => setNewHistoryCategory(e.target.value as HistoryCategory)}
+            >
+              {historyCategoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <Input
               placeholder="새 기록 제목"
               value={newHistoryTitle}
@@ -313,7 +345,12 @@ export default function CustomerDetailEditor({ customer }: { customer: Customer 
         <CardContent className="space-y-3">
           {draft.histories.map((history) => (
             <div key={`${history.dateTime}-${history.title}`} className="rounded-md border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-xs font-semibold text-primary">{history.dateTime}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-primary">{history.dateTime}</p>
+                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                  {historyCategoryLabelMap[history.category ?? 'etc']}
+                </span>
+              </div>
               <p className="mt-1 text-sm font-medium text-slate-700">{history.title}</p>
               {history.note && <p className="mt-1.5 text-sm text-slate-600">{history.note}</p>}
             </div>

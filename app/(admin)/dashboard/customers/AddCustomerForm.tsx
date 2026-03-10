@@ -46,6 +46,7 @@ export default function AddCustomerForm() {
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
       <p className="text-sm font-semibold text-slate-800">고객사 직접 추가</p>
+      <p className="text-xs text-slate-500">동일한 이름의 기존 고객사가 있어도 신규 항목으로 추가됩니다.</p>
       <div className="flex gap-2">
         <Input
           value={name}
@@ -58,7 +59,7 @@ export default function AddCustomerForm() {
             }
           }}
         />
-        <Button onClick={createCustomer} disabled={loading}>
+        <Button onClick={createCustomer} disabled={loading || !name.trim()}>
           추가
         </Button>
       </div>

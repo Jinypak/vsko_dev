@@ -57,7 +57,30 @@ export async function ensureCoreTables() {
   `);
 
   await db.execute(sql`
+    UPDATE customers
+    SET histories = (
+      SELECT COALESCE(jsonb_agg(
+        CASE
+          WHEN jsonb_typeof(h) = 'object' AND NOT (h ? 'category')
+            THEN h || jsonb_build_object('category', 'etc')
+          ELSE h
+        END
+      ), '[]'::jsonb)
+      FROM jsonb_array_elements(histories) AS t(h)
+    )
+    WHERE histories IS NOT NULL;
+  `);
+
+  await db.execute(sql`
     CREATE INDEX IF NOT EXISTS customers_name_idx ON customers (name);
+  `);
+
+  await db.execute(sql`
+    CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS customers_name_trgm_idx ON customers USING gin (name gin_trgm_ops);
   `);
 
   await db.execute(sql`
