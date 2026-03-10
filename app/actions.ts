@@ -21,19 +21,23 @@ export async function getData(query?: string) {
   const keyword = (query ?? '').trim();
 
   if (!keyword) {
-    return sql<CustomerRow[]>`
+    const rows = await sql`
       SELECT id, name, hsm_count, model, engineer
       FROM customers
       ORDER BY name ASC
       LIMIT 100;
     `;
+
+    return rows as CustomerRow[];
   }
 
-  return sql<CustomerRow[]>`
+  const rows = await sql`
     SELECT id, name, hsm_count, model, engineer
     FROM customers
     WHERE name ILIKE ${`%${keyword}%`}
     ORDER BY name ASC
     LIMIT 100;
   `;
+
+  return rows as CustomerRow[];
 }
