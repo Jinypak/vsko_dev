@@ -136,29 +136,35 @@ export async function getClient(id: string): Promise<ClientInfo | null> {
 type ClientFormData = Omit<ClientInfo, "id" | "registeredAt" | "contacts" | "products" | "history">;
 
 export async function addClient(formData: ClientFormData): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const d = new Date();
-  const registeredAt = `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, "0")}. ${String(d.getDate()).padStart(2, "0")}`;
+  try {
+    const supabase = await createClient();
+    const d = new Date();
+    const registeredAt = `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, "0")}. ${String(d.getDate()).padStart(2, "0")}`;
 
-  const { error } = await supabase.from("clients").insert({
-    company_name: formData.companyName,
-    company_name_en: formData.companyNameEn,
-    is_vip: formData.isVip,
-    contract_status: formData.contractStatus,
-    department: formData.department,
-    engineer: formData.engineer,
-    purpose: formData.purpose,
-    maintenance_status: formData.maintenanceStatus,
-    notes: formData.notes,
-    registered_at: registeredAt,
-  });
+    const { error } = await supabase.from("clients").insert({
+      company_name: formData.companyName,
+      company_name_en: formData.companyNameEn,
+      is_vip: formData.isVip,
+      contract_status: formData.contractStatus,
+      department: formData.department,
+      engineer: formData.engineer,
+      purpose: formData.purpose,
+      maintenance_status: formData.maintenanceStatus,
+      notes: formData.notes,
+      registered_at: registeredAt,
+    });
 
-  if (error) {
-    console.error("[addClient] Supabase error:", error.code, error.message, error.hint);
-    return { error: error.message };
+    if (error) {
+      console.error("[addClient] Supabase error:", error.code, error.message, error.hint);
+      return { error: `${error.message}${error.hint ? ` (${error.hint})` : ""}` };
+    }
+    revalidatePath("/clients");
+    return { error: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[addClient] unexpected:", msg);
+    return { error: msg };
   }
-  revalidatePath("/clients");
-  return { error: null };
 }
 
 export async function updateClient(id: string, formData: ClientFormData): Promise<void> {

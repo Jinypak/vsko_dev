@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ClientInfo } from "@/types/client";
 import { addClient } from "@/lib/actions/clients";
 
@@ -15,6 +16,7 @@ const INITIAL: FormData = {
 interface AddClientDrawerProps { onClose: () => void }
 
 export default function AddClientDrawer({ onClose }: AddClientDrawerProps) {
+  const router = useRouter();
   const [form, setForm] = useState<FormData>(INITIAL);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export default function AddClientDrawer({ onClose }: AddClientDrawerProps) {
       setErrorMsg(result.error);
       setSaving(false);
     } else {
+      router.refresh();
       onClose();
     }
   };
