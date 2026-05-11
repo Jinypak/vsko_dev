@@ -3,8 +3,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "ClientOS",
-  description: "고객사 정보 관리 시스템",
+  title: "비전스퀘어 | VISION SQUARE",
+  description: "",
 };
 
 export default function RootLayout({
