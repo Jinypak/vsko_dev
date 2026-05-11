@@ -17,6 +17,7 @@ interface AddClientDrawerProps { onClose: () => void }
 export default function AddClientDrawer({ onClose }: AddClientDrawerProps) {
   const [form, setForm] = useState<FormData>(INITIAL);
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const set = (k: keyof FormData, v: unknown) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -28,8 +29,14 @@ export default function AddClientDrawer({ onClose }: AddClientDrawerProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await addClient(form);
-    onClose();
+    setErrorMsg(null);
+    const result = await addClient(form);
+    if (result.error) {
+      setErrorMsg(result.error);
+      setSaving(false);
+    } else {
+      onClose();
+    }
   };
 
   return (
@@ -113,11 +120,16 @@ export default function AddClientDrawer({ onClose }: AddClientDrawerProps) {
             </section>
           </div>
 
-          <div className="shrink-0 border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-2 bg-white">
-            <button type="button" onClick={onClose} className="text-sm border border-gray-200 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50">취소</button>
-            <button type="submit" disabled={saving} className="text-sm bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50">
-              {saving ? "저장 중..." : "등록하기"}
-            </button>
+          <div className="shrink-0 border-t border-gray-100 px-6 py-4 bg-white">
+            {errorMsg && (
+              <p className="text-[11px] text-red-500 mb-3 px-1">{errorMsg}</p>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <button type="button" onClick={onClose} className="text-sm border border-gray-200 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50">취소</button>
+              <button type="submit" disabled={saving} className="text-sm bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50">
+                {saving ? "저장 중..." : "등록하기"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

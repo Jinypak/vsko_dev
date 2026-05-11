@@ -135,7 +135,7 @@ export async function getClient(id: string): Promise<ClientInfo | null> {
 
 type ClientFormData = Omit<ClientInfo, "id" | "registeredAt" | "contacts" | "products" | "history">;
 
-export async function addClient(formData: ClientFormData): Promise<void> {
+export async function addClient(formData: ClientFormData): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const d = new Date();
   const registeredAt = `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, "0")}. ${String(d.getDate()).padStart(2, "0")}`;
@@ -153,8 +153,12 @@ export async function addClient(formData: ClientFormData): Promise<void> {
     registered_at: registeredAt,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[addClient] Supabase error:", error.code, error.message, error.hint);
+    return { error: error.message };
+  }
   revalidatePath("/clients");
+  return { error: null };
 }
 
 export async function updateClient(id: string, formData: ClientFormData): Promise<void> {
