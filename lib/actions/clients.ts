@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ClientInfo, Product, HistoryItem, HistoryDetail, CheckItem, AttachedFile } from "@/types/client";
+import { mockClients } from "@/lib/mock-data";
+
+const isSupabaseConfigured =
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // ─── 타입 매핑 (snake_case → camelCase) ───────────────────────────
 
@@ -93,37 +98,47 @@ function mapClient(r: Record<string, unknown>): ClientInfo {
 // ─── 조회 ──────────────────────────────────────────────────────────
 
 export async function getClients(): Promise<ClientInfo[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*, products(*)")
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => mapClient(r as Record<string, unknown>));
+  if (!isSupabaseConfigured) return mockClients;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*, products(*)")
+      .order("created_at", { ascending: false });
+    if (error) return mockClients;
+    return (data ?? []).map((r) => mapClient(r as Record<string, unknown>));
+  } catch {
+    return mockClients;
+  }
 }
 
 export async function getClient(id: string): Promise<ClientInfo | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("clients")
-    .select(`
-      *,
-      products(*),
-      history_items(
+  if (!isSupabaseConfigured) {
+    return mockClients.find((c) => c.id === id) ?? null;
+  }
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("clients")
+      .select(`
         *,
-        history_details(
+        products(*),
+        history_items(
           *,
-          check_items(*),
-          attached_files(*)
+          history_details(
+            *,
+            check_items(*),
+            attached_files(*)
+          )
         )
-      )
-    `)
-    .eq("id", id)
-    .single();
-
-  if (error) return null;
-  return mapClient(data as Record<string, unknown>);
+      `)
+      .eq("id", id)
+      .single();
+    if (error) return mockClients.find((c) => c.id === id) ?? null;
+    return mapClient(data as Record<string, unknown>);
+  } catch {
+    return mockClients.find((c) => c.id === id) ?? null;
+  }
 }
 
 // ─── 고객사 CRUD ───────────────────────────────────────────────────
