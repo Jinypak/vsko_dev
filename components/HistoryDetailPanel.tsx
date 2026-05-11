@@ -72,7 +72,7 @@ export default function HistoryDetailPanel({
     }
   };
 
-  const infoFields: { k: string; field: keyof typeof draft }[] = [
+  const infoFields: { k: string; field: keyof typeof saved }[] = [
     { k: "요청일", field: "requestedAt" },
     { k: "예상 완료", field: "dueDate" },
     { k: "투입 인원", field: "members" },
