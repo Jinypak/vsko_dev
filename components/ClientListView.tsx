@@ -26,9 +26,9 @@ export default function ClientListView({ clients }: ClientListViewProps) {
         !q ||
         c.companyName.toLowerCase().includes(q) ||
         c.companyNameEn.toLowerCase().includes(q) ||
-        c.industry.toLowerCase().includes(q) ||
-        c.manager.toLowerCase().includes(q) ||
-        c.ceo.toLowerCase().includes(q);
+        c.department.toLowerCase().includes(q) ||
+        c.engineer.toLowerCase().includes(q) ||
+        c.notes.toLowerCase().includes(q);
       const matchContract =
         contractFilter === "전체" || c.contractStatus === contractFilter;
       const matchVip = !vipOnly || c.isVip;
@@ -77,7 +77,7 @@ export default function ClientListView({ clients }: ClientListViewProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="회사명, 업종, 담당자, 대표자로 검색..."
+            placeholder="회사명, 부서, 담당 엔지니어로 검색..."
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder:text-gray-300"
           />
           {query && (
@@ -134,8 +134,8 @@ export default function ClientListView({ clients }: ClientListViewProps) {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2">고객사</th>
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-28">업종</th>
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">담당자</th>
+                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-28">부서</th>
+                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">엔지니어</th>
                 <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-20">상태</th>
                 <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">등록일</th>
                 <th className="w-10" />
@@ -165,8 +165,8 @@ export default function ClientListView({ clients }: ClientListViewProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-2.5 py-3 text-gray-500">{client.industry}</td>
-                  <td className="px-2.5 py-3 text-gray-500">{client.manager}</td>
+                  <td className="px-2.5 py-3 text-gray-500">{client.department}</td>
+                  <td className="px-2.5 py-3 text-gray-500">{client.engineer}</td>
                   <td className="px-2.5 py-3">
                     <span className={`text-[11px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[
                       client.contractStatus === "계약중" ? "진행중"

@@ -1,102 +1,112 @@
 -- =============================================
--- VisionSquare CRM — Supabase Schema
+-- VisionSquare CRM — Supabase Schema v2
 -- Supabase SQL Editor에서 순서대로 실행하세요
 -- =============================================
 
+-- 기존 테이블 제거 (역순)
+DROP TABLE IF EXISTS attached_files   CASCADE;
+DROP TABLE IF EXISTS check_items      CASCADE;
+DROP TABLE IF EXISTS history_details  CASCADE;
+DROP TABLE IF EXISTS history_items    CASCADE;
+DROP TABLE IF EXISTS products         CASCADE;
+DROP TABLE IF EXISTS contacts         CASCADE;
+DROP TABLE IF EXISTS clients          CASCADE;
+
+-- =============================================
 -- 1. 고객사 테이블
+-- =============================================
 CREATE TABLE clients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_name TEXT NOT NULL,
-  company_name_en TEXT DEFAULT '',
-  is_vip BOOLEAN DEFAULT false,
-  contract_status TEXT DEFAULT '계약중'
-    CHECK (contract_status IN ('계약중', '계약종료', '협의중')),
-  ceo TEXT DEFAULT '',
-  business_number TEXT DEFAULT '',
-  industry TEXT DEFAULT '',
-  founded_at TEXT DEFAULT '',
-  scale TEXT DEFAULT '',
-  manager TEXT NOT NULL DEFAULT '',
-  phone TEXT DEFAULT '',
-  email TEXT DEFAULT '',
-  address TEXT DEFAULT '',
-  registered_at TEXT DEFAULT '',
-  memo TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name     TEXT        NOT NULL,
+  company_name_en  TEXT        DEFAULT '',
+  is_vip           BOOLEAN     DEFAULT false,
+  contract_status  TEXT        DEFAULT '계약중'
+                               CHECK (contract_status IN ('계약중', '계약종료', '협의중')),
+  department       TEXT        DEFAULT '',   -- 부서
+  engineer         TEXT        DEFAULT '',   -- 담당 엔지니어
+  purpose          TEXT        DEFAULT '',   -- 용도
+  maintenance_status TEXT      DEFAULT '해당없음'
+                               CHECK (maintenance_status IN ('진행중', '완료', '중단', '해당없음')),
+  notes            TEXT        DEFAULT '',   -- 특이사항
+  registered_at    TEXT        DEFAULT '',
+  created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. 계약 제품 테이블
+-- =============================================
+-- 2. 담당자 테이블 (고객사당 여러 명)
+-- =============================================
+CREATE TABLE contacts (
+  id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id   UUID    NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  name        TEXT    NOT NULL DEFAULT '',
+  phone       TEXT    DEFAULT '',
+  email       TEXT    DEFAULT '',
+  is_primary  BOOLEAN DEFAULT false,
+  sort_order  INTEGER DEFAULT 0
+);
+
+-- =============================================
+-- 3. 제품 상세 테이블
+-- =============================================
 CREATE TABLE products (
-  id BIGSERIAL PRIMARY KEY,
-  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  category TEXT DEFAULT '서비스'
-    CHECK (category IN ('서비스', '구독', '인쇄', '출력', '기타')),
-  unit_price BIGINT DEFAULT 0,
-  quantity INTEGER DEFAULT 1,
-  status TEXT DEFAULT '진행중'
-    CHECK (status IN ('진행중', '완료', '대기', '수정요청', '계획중')),
-  sort_order INTEGER DEFAULT 0
+  id                  BIGSERIAL   PRIMARY KEY,
+  client_id           UUID        NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  sort_order          INTEGER     DEFAULT 0,
+  name                TEXT        NOT NULL DEFAULT '',   -- 제품명
+  category            TEXT        DEFAULT 'Luna'
+                                  CHECK (category IN ('Luna', 'PSE', 'Backup')),
+  model               TEXT        DEFAULT '',   -- 모델
+  purpose             TEXT        DEFAULT '',   -- 용도
+  serial_number       TEXT        DEFAULT '',   -- Serial Number
+  firmware            TEXT        DEFAULT '',   -- Firmware
+  client_os           TEXT        DEFAULT '',   -- Client OS
+  client_count        TEXT        DEFAULT '',   -- Client Count
+  maintenance_start   TEXT        DEFAULT '',   -- 유지보수 기간 시작
+  maintenance_end     TEXT        DEFAULT '',   -- 유지보수 기간 종료
+  maintenance_status  TEXT        DEFAULT '해당없음'
+                                  CHECK (maintenance_status IN ('진행중', '완료', '중단', '해당없음'))
 );
 
--- 3. 작업 히스토리 테이블
+-- =============================================
+-- 4. 작업 히스토리 테이블
+-- =============================================
 CREATE TABLE history_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-  date TEXT DEFAULT '',
-  name TEXT NOT NULL,
-  assignee TEXT DEFAULT '',
-  status TEXT DEFAULT '진행중'
-    CHECK (status IN ('진행중', '완료', '대기', '수정요청', '계획중')),
-  note TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id      UUID        NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  date           TEXT        DEFAULT '',
+  name           TEXT        NOT NULL DEFAULT '',   -- 작업명
+  engineer       TEXT        DEFAULT '',            -- 엔지니어
+  classification TEXT        DEFAULT '점검'
+                             CHECK (classification IN ('점검', '기술지원', '장애')),
+  status         TEXT        DEFAULT '진행중'
+                             CHECK (status IN ('진행중', '완료', '대기', '수정요청', '계획중')),
+  created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. 히스토리 상세 테이블 (history_items 1:1)
+-- =============================================
+-- 5. 작업 히스토리 상세 테이블
+-- =============================================
 CREATE TABLE history_details (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  history_item_id UUID NOT NULL UNIQUE REFERENCES history_items(id) ON DELETE CASCADE,
-  summary TEXT DEFAULT '',
-  requested_at TEXT DEFAULT '',
-  due_date TEXT DEFAULT '',
-  members TEXT DEFAULT '',
-  budget TEXT DEFAULT ''
-);
-
--- 5. 체크 항목 테이블
-CREATE TABLE check_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  history_detail_id UUID NOT NULL REFERENCES history_details(id) ON DELETE CASCADE,
-  label TEXT NOT NULL,
-  done BOOLEAN DEFAULT false,
-  sort_order INTEGER DEFAULT 0
-);
-
--- 6. 첨부 파일 테이블
-CREATE TABLE attached_files (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  history_detail_id UUID NOT NULL REFERENCES history_details(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  type TEXT DEFAULT 'pdf'
-    CHECK (type IN ('pdf', 'psd', 'ai', 'png', 'jpg', 'xlsx', 'docx')),
-  sort_order INTEGER DEFAULT 0
+  id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+  history_item_id UUID    NOT NULL UNIQUE REFERENCES history_items(id) ON DELETE CASCADE,
+  author          TEXT    DEFAULT '',   -- 작성자
+  date            TEXT    DEFAULT '',   -- 일자
+  classification  TEXT    DEFAULT '점검'
+                          CHECK (classification IN ('점검', '기술지원', '장애')),
+  content         TEXT    DEFAULT ''    -- 상세 내용
 );
 
 -- =============================================
--- RLS (Row Level Security) 설정
+-- RLS (Row Level Security)
 -- =============================================
+ALTER TABLE clients          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE history_items    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE history_details  ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE history_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE history_details ENABLE ROW LEVEL SECURITY;
-ALTER TABLE check_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attached_files ENABLE ROW LEVEL SECURITY;
-
--- 로그인한 사용자만 모든 CRUD 허용
-CREATE POLICY "authenticated_all" ON clients FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "authenticated_all" ON products FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "authenticated_all" ON history_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "authenticated_all" ON clients         FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "authenticated_all" ON contacts        FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "authenticated_all" ON products        FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "authenticated_all" ON history_items   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "authenticated_all" ON history_details FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "authenticated_all" ON check_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "authenticated_all" ON attached_files FOR ALL TO authenticated USING (true) WITH CHECK (true);

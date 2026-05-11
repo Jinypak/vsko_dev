@@ -1,15 +1,23 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { HistoryItem } from "@/types/client";
+import { HistoryItem, HistoryClassification } from "@/types/client";
 import StatusBadge from "@/components/ui/StatusBadge";
 import SectionHeader from "@/components/ui/SectionHeader";
 import HistoryDetailPanel from "@/components/HistoryDetailPanel";
 import { addHistoryItem, updateHistoryItem, deleteHistoryItem } from "@/lib/actions/clients";
 
 const STATUSES: HistoryItem["status"][] = ["진행중", "완료", "대기", "수정요청", "계획중"];
-type HistoryForm = { date: string; name: string; assignee: string; status: HistoryItem["status"]; note: string };
-const BLANK_FORM: HistoryForm = { date: "", name: "", assignee: "", status: "진행중", note: "" };
+const CLASSIFICATIONS: HistoryClassification[] = ["점검", "기술지원", "장애"];
+
+const CLS_STYLE: Record<HistoryClassification, string> = {
+  점검:    "border-blue-300 text-blue-600 bg-blue-50",
+  기술지원: "border-green-300 text-green-600 bg-green-50",
+  장애:    "border-red-300 text-red-500 bg-red-50",
+};
+
+type HistoryForm = { date: string; name: string; engineer: string; classification: HistoryClassification; status: HistoryItem["status"] };
+const BLANK_FORM: HistoryForm = { date: "", name: "", engineer: "", classification: "점검", status: "진행중" };
 
 const INPUT = "w-full text-[12px] px-1.5 py-0.5 border border-gray-300 rounded focus:outline-none focus:border-gray-500 bg-white";
 const SELECT = `${INPUT} cursor-pointer`;
@@ -31,7 +39,7 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
   const startEdit = (item: HistoryItem) => {
     setOpenId(null);
     setEditId(item.id);
-    setEditForm({ date: item.date, name: item.name, assignee: item.assignee, status: item.status, note: item.note });
+    setEditForm({ date: item.date, name: item.name, engineer: item.engineer, classification: item.classification, status: item.status });
   };
 
   const handleSaveEdit = async () => {
@@ -63,7 +71,7 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
 
   return (
     <div>
-      <SectionHeader num="02" title="작업 히스토리" sub="· 최근 6개월 · 클릭하여 상세보기" />
+      <SectionHeader num="02" title="작업 히스토리" sub="· 클릭하여 상세보기" />
 
       <table className="w-full text-[13px]">
         <thead>
@@ -71,8 +79,8 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
             <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">일자</th>
             <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2">작업명</th>
             <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-20">담당</th>
+            <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-20">분류</th>
             <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">상태</th>
-            <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2">비고</th>
             <th className="w-44" />
           </tr>
         </thead>
@@ -94,15 +102,17 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
                         <input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} className={INPUT} />
                       </td>
                       <td className="px-2.5 py-2">
-                        <input value={editForm.assignee} onChange={(e) => setEditForm((p) => ({ ...p, assignee: e.target.value }))} className={INPUT} />
+                        <input value={editForm.engineer} onChange={(e) => setEditForm((p) => ({ ...p, engineer: e.target.value }))} className={INPUT} />
+                      </td>
+                      <td className="px-2.5 py-2">
+                        <select value={editForm.classification} onChange={(e) => setEditForm((p) => ({ ...p, classification: e.target.value as HistoryClassification }))} className={SELECT}>
+                          {CLASSIFICATIONS.map((c) => <option key={c}>{c}</option>)}
+                        </select>
                       </td>
                       <td className="px-2.5 py-2">
                         <select value={editForm.status} onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value as HistoryItem["status"] }))} className={SELECT}>
                           {STATUSES.map((s) => <option key={s}>{s}</option>)}
                         </select>
-                      </td>
-                      <td className="px-2.5 py-2">
-                        <input value={editForm.note} onChange={(e) => setEditForm((p) => ({ ...p, note: e.target.value }))} className={INPUT} />
                       </td>
                       <td className="px-2.5 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -119,9 +129,13 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
                     <>
                       <td className="px-2.5 py-2.5 text-gray-400 text-[12px]">{item.date}</td>
                       <td className="px-2.5 py-2.5 text-gray-800">{item.name}</td>
-                      <td className="px-2.5 py-2.5 text-gray-500">{item.assignee}</td>
+                      <td className="px-2.5 py-2.5 text-gray-500 text-[12px]">{item.engineer}</td>
+                      <td className="px-2.5 py-2.5">
+                        <span className={`text-[10px] border rounded-full px-2 py-0.5 ${CLS_STYLE[item.classification]}`}>
+                          {item.classification}
+                        </span>
+                      </td>
                       <td className="px-2.5 py-2.5"><StatusBadge status={item.status} /></td>
-                      <td className="px-2.5 py-2.5 text-gray-400 text-[12px]">{item.note}</td>
                       <td className="px-2.5 py-2.5">
                         {isConfirmDelete ? (
                           <div className="flex items-center justify-end gap-1">
@@ -135,14 +149,10 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-1">
-                            {/* 상세보기 */}
                             <button
-                              onClick={() => item.detail && setOpenId((prev) => prev === item.id ? null : item.id)}
-                              disabled={!item.detail}
+                              onClick={() => setOpenId((prev) => prev === item.id ? null : item.id)}
                               className={`flex items-center gap-1 text-[11px] px-2 py-0.5 border rounded-md transition-colors ${
-                                !item.detail
-                                  ? "border-gray-100 text-gray-300 cursor-not-allowed"
-                                  : isOpen
+                                isOpen
                                   ? "border-gray-800 bg-gray-900 text-white"
                                   : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
                               }`}
@@ -152,7 +162,6 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
                             </button>
-                            {/* 편집/삭제 (hover 시 표시) */}
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => startEdit(item)} className="text-[11px] px-2 py-0.5 border border-gray-200 text-gray-400 rounded-md hover:border-gray-400 hover:text-gray-600 transition-colors">
                                 편집
@@ -168,10 +177,14 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
                   )}
                 </tr>
 
-                {item.detail && isOpen && !isEditing && (
+                {isOpen && !isEditing && (
                   <tr>
                     <td colSpan={6} className="p-0">
-                      <HistoryDetailPanel detail={item.detail} onClose={() => setOpenId(null)} />
+                      <HistoryDetailPanel
+                        detail={item.detail ?? { author: "", date: "", classification: "점검", content: "" }}
+                        historyItemId={item.id}
+                        onClose={() => setOpenId(null)}
+                      />
                     </td>
                   </tr>
                 )}
@@ -179,7 +192,6 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
             );
           })}
 
-          {/* 새 히스토리 추가 행 */}
           {isAdding && (
             <tr className="border-b border-gray-100 bg-gray-50">
               <td className="px-2.5 py-2">
@@ -189,15 +201,17 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
                 <input placeholder="작업명" value={newForm.name} onChange={(e) => setNewForm((p) => ({ ...p, name: e.target.value }))} className={INPUT} />
               </td>
               <td className="px-2.5 py-2">
-                <input placeholder="담당자" value={newForm.assignee} onChange={(e) => setNewForm((p) => ({ ...p, assignee: e.target.value }))} className={INPUT} />
+                <input placeholder="담당자" value={newForm.engineer} onChange={(e) => setNewForm((p) => ({ ...p, engineer: e.target.value }))} className={INPUT} />
+              </td>
+              <td className="px-2.5 py-2">
+                <select value={newForm.classification} onChange={(e) => setNewForm((p) => ({ ...p, classification: e.target.value as HistoryClassification }))} className={SELECT}>
+                  {CLASSIFICATIONS.map((c) => <option key={c}>{c}</option>)}
+                </select>
               </td>
               <td className="px-2.5 py-2">
                 <select value={newForm.status} onChange={(e) => setNewForm((p) => ({ ...p, status: e.target.value as HistoryItem["status"] }))} className={SELECT}>
                   {STATUSES.map((s) => <option key={s}>{s}</option>)}
                 </select>
-              </td>
-              <td className="px-2.5 py-2">
-                <input placeholder="비고" value={newForm.note} onChange={(e) => setNewForm((p) => ({ ...p, note: e.target.value }))} className={INPUT} />
               </td>
               <td className="px-2.5 py-2 text-right">
                 <div className="flex items-center justify-end gap-1">

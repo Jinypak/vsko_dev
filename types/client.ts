@@ -1,3 +1,5 @@
+// ─── 공통 ──────────────────────────────────────────────────────────
+
 export type StatusType =
   | "진행중"
   | "완료"
@@ -5,68 +7,78 @@ export type StatusType =
   | "수정요청"
   | "계획중";
 
-export type ProductCategory = "서비스" | "구독" | "인쇄" | "출력" | "기타";
+export type MaintenanceStatus = "진행중" | "완료" | "중단" | "해당없음";
+
+export type ProductCategory = "Luna" | "PSE" | "Backup";
+
+export type HistoryClassification = "점검" | "기술지원" | "장애";
+
+// ─── 담당자 ────────────────────────────────────────────────────────
+
+export interface Contact {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
+// ─── 제품 상세 ─────────────────────────────────────────────────────
 
 export interface Product {
   id: number;
+  sortOrder: number;
   name: string;
   category: ProductCategory;
-  unitPrice: number;
-  quantity: number;
-  status: StatusType;
+  model: string;
+  purpose: string;
+  serialNumber: string;
+  firmware: string;
+  clientOs: string;
+  clientCount: string;
+  maintenanceStart: string;
+  maintenanceEnd: string;
+  maintenanceStatus: MaintenanceStatus;
 }
 
-export interface CheckItem {
-  id: string;
-  label: string;
-  done: boolean;
-}
-
-export interface AttachedFile {
-  id: string;
-  name: string;
-  type: "pdf" | "psd" | "ai" | "png" | "jpg" | "xlsx" | "docx";
-}
+// ─── 히스토리 상세 ─────────────────────────────────────────────────
 
 export interface HistoryDetail {
   id?: string;
-  summary: string;
-  requestedAt: string;
-  dueDate: string;
-  members: string;
-  budget: string;
-  checkItems: CheckItem[];
-  files: AttachedFile[];
+  author: string;
+  date: string;
+  classification: HistoryClassification;
+  content: string;
 }
+
+// ─── 히스토리 항목 ─────────────────────────────────────────────────
 
 export interface HistoryItem {
   id: string;
   date: string;
   name: string;
-  assignee: string;
+  engineer: string;
+  classification: HistoryClassification;
   status: StatusType;
-  note: string;
   detail?: HistoryDetail;
 }
 
+// ─── 고객사 ────────────────────────────────────────────────────────
+
 export interface ClientInfo {
   id: string;
-  logoUrl?: string;
   companyName: string;
   companyNameEn: string;
   isVip: boolean;
   contractStatus: "계약중" | "계약종료" | "협의중";
-  ceo: string;
-  businessNumber: string;
-  industry: string;
-  foundedAt: string;
-  scale: string;
-  manager: string;
-  phone: string;
-  email: string;
-  address: string;
+  department: string;
+  engineer: string;
+  purpose: string;
+  maintenanceStatus: MaintenanceStatus;
+  notes: string;
   registeredAt: string;
-  memo: string;
+  contacts: Contact[];
   products: Product[];
   history: HistoryItem[];
 }

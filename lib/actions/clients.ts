@@ -2,41 +2,49 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { ClientInfo, Product, HistoryItem, HistoryDetail, CheckItem, AttachedFile } from "@/types/client";
-import { mockClients } from "@/lib/mock-data";
-
-const isSupabaseConfigured =
-  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+import {
+  ClientInfo, Contact, Product, HistoryItem, HistoryDetail,
+  MaintenanceStatus, ProductCategory, HistoryClassification, StatusType,
+} from "@/types/client";
 
 // ─── 타입 매핑 (snake_case → camelCase) ───────────────────────────
 
-function mapFile(r: Record<string, unknown>): AttachedFile {
-  return { id: r.id as string, name: r.name as string, type: r.type as AttachedFile["type"] };
+function mapContact(r: Record<string, unknown>): Contact {
+  return {
+    id: r.id as string,
+    name: (r.name as string) ?? "",
+    phone: (r.phone as string) ?? "",
+    email: (r.email as string) ?? "",
+    isPrimary: (r.is_primary as boolean) ?? false,
+    sortOrder: (r.sort_order as number) ?? 0,
+  };
 }
 
-function mapCheckItem(r: Record<string, unknown>): CheckItem {
-  return { id: r.id as string, label: r.label as string, done: r.done as boolean };
+function mapProduct(r: Record<string, unknown>): Product {
+  return {
+    id: r.id as number,
+    sortOrder: (r.sort_order as number) ?? 0,
+    name: (r.name as string) ?? "",
+    category: (r.category as ProductCategory) ?? "Luna",
+    model: (r.model as string) ?? "",
+    purpose: (r.purpose as string) ?? "",
+    serialNumber: (r.serial_number as string) ?? "",
+    firmware: (r.firmware as string) ?? "",
+    clientOs: (r.client_os as string) ?? "",
+    clientCount: (r.client_count as string) ?? "",
+    maintenanceStart: (r.maintenance_start as string) ?? "",
+    maintenanceEnd: (r.maintenance_end as string) ?? "",
+    maintenanceStatus: (r.maintenance_status as MaintenanceStatus) ?? "해당없음",
+  };
 }
 
 function mapDetail(r: Record<string, unknown>): HistoryDetail {
-  const checks = (r.check_items as Record<string, unknown>[] | null) ?? [];
-  const files = (r.attached_files as Record<string, unknown>[] | null) ?? [];
   return {
     id: r.id as string,
-    summary: (r.summary as string) ?? "",
-    requestedAt: (r.requested_at as string) ?? "",
-    dueDate: (r.due_date as string) ?? "",
-    members: (r.members as string) ?? "",
-    budget: (r.budget as string) ?? "",
-    checkItems: checks
-      .slice()
-      .sort((a, b) => ((a.sort_order as number) ?? 0) - ((b.sort_order as number) ?? 0))
-      .map(mapCheckItem),
-    files: files
-      .slice()
-      .sort((a, b) => ((a.sort_order as number) ?? 0) - ((b.sort_order as number) ?? 0))
-      .map(mapFile),
+    author: (r.author as string) ?? "",
+    date: (r.date as string) ?? "",
+    classification: (r.classification as HistoryClassification) ?? "점검",
+    content: (r.content as string) ?? "",
   };
 }
 
@@ -45,45 +53,34 @@ function mapHistoryItem(r: Record<string, unknown>): HistoryItem {
   return {
     id: r.id as string,
     date: (r.date as string) ?? "",
-    name: r.name as string,
-    assignee: (r.assignee as string) ?? "",
-    status: r.status as HistoryItem["status"],
-    note: (r.note as string) ?? "",
+    name: (r.name as string) ?? "",
+    engineer: (r.engineer as string) ?? "",
+    classification: (r.classification as HistoryClassification) ?? "점검",
+    status: (r.status as StatusType) ?? "진행중",
     detail: details[0] ? mapDetail(details[0]) : undefined,
   };
 }
 
-function mapProduct(r: Record<string, unknown>): Product {
-  return {
-    id: r.id as number,
-    name: r.name as string,
-    category: r.category as Product["category"],
-    unitPrice: r.unit_price as number,
-    quantity: r.quantity as number,
-    status: r.status as Product["status"],
-  };
-}
-
 function mapClient(r: Record<string, unknown>): ClientInfo {
+  const contacts = (r.contacts as Record<string, unknown>[] | null) ?? [];
   const products = (r.products as Record<string, unknown>[] | null) ?? [];
   const history = (r.history_items as Record<string, unknown>[] | null) ?? [];
   return {
     id: r.id as string,
-    companyName: r.company_name as string,
+    companyName: (r.company_name as string) ?? "",
     companyNameEn: (r.company_name_en as string) ?? "",
     isVip: (r.is_vip as boolean) ?? false,
-    contractStatus: r.contract_status as ClientInfo["contractStatus"],
-    ceo: (r.ceo as string) ?? "",
-    businessNumber: (r.business_number as string) ?? "",
-    industry: (r.industry as string) ?? "",
-    foundedAt: (r.founded_at as string) ?? "",
-    scale: (r.scale as string) ?? "",
-    manager: r.manager as string,
-    phone: (r.phone as string) ?? "",
-    email: (r.email as string) ?? "",
-    address: (r.address as string) ?? "",
+    contractStatus: (r.contract_status as ClientInfo["contractStatus"]) ?? "계약중",
+    department: (r.department as string) ?? "",
+    engineer: (r.engineer as string) ?? "",
+    purpose: (r.purpose as string) ?? "",
+    maintenanceStatus: (r.maintenance_status as MaintenanceStatus) ?? "해당없음",
+    notes: (r.notes as string) ?? "",
     registeredAt: (r.registered_at as string) ?? "",
-    memo: (r.memo as string) ?? "",
+    contacts: contacts
+      .slice()
+      .sort((a, b) => ((a.sort_order as number) ?? 0) - ((b.sort_order as number) ?? 0))
+      .map(mapContact),
     products: products
       .slice()
       .sort((a, b) => ((a.sort_order as number) ?? 0) - ((b.sort_order as number) ?? 0))
@@ -98,52 +95,45 @@ function mapClient(r: Record<string, unknown>): ClientInfo {
 // ─── 조회 ──────────────────────────────────────────────────────────
 
 export async function getClients(): Promise<ClientInfo[]> {
-  if (!isSupabaseConfigured) return mockClients;
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("clients")
-      .select("*, products(*)")
+      .select("*, contacts(*), products(*)")
       .order("created_at", { ascending: false });
-    if (error) return mockClients;
+    if (error) return [];
     return (data ?? []).map((r) => mapClient(r as Record<string, unknown>));
   } catch {
-    return mockClients;
+    return [];
   }
 }
 
 export async function getClient(id: string): Promise<ClientInfo | null> {
-  if (!isSupabaseConfigured) {
-    return mockClients.find((c) => c.id === id) ?? null;
-  }
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("clients")
       .select(`
         *,
+        contacts(*),
         products(*),
         history_items(
           *,
-          history_details(
-            *,
-            check_items(*),
-            attached_files(*)
-          )
+          history_details(*)
         )
       `)
       .eq("id", id)
       .single();
-    if (error) return mockClients.find((c) => c.id === id) ?? null;
+    if (error) return null;
     return mapClient(data as Record<string, unknown>);
   } catch {
-    return mockClients.find((c) => c.id === id) ?? null;
+    return null;
   }
 }
 
 // ─── 고객사 CRUD ───────────────────────────────────────────────────
 
-type ClientFormData = Omit<ClientInfo, "id" | "registeredAt" | "products" | "history">;
+type ClientFormData = Omit<ClientInfo, "id" | "registeredAt" | "contacts" | "products" | "history">;
 
 export async function addClient(formData: ClientFormData): Promise<void> {
   const supabase = await createClient();
@@ -155,17 +145,12 @@ export async function addClient(formData: ClientFormData): Promise<void> {
     company_name_en: formData.companyNameEn,
     is_vip: formData.isVip,
     contract_status: formData.contractStatus,
-    ceo: formData.ceo,
-    business_number: formData.businessNumber,
-    industry: formData.industry,
-    founded_at: formData.foundedAt,
-    scale: formData.scale,
-    manager: formData.manager,
-    phone: formData.phone,
-    email: formData.email,
-    address: formData.address,
+    department: formData.department,
+    engineer: formData.engineer,
+    purpose: formData.purpose,
+    maintenance_status: formData.maintenanceStatus,
+    notes: formData.notes,
     registered_at: registeredAt,
-    memo: formData.memo,
   });
 
   if (error) throw new Error(error.message);
@@ -179,16 +164,11 @@ export async function updateClient(id: string, formData: ClientFormData): Promis
     company_name_en: formData.companyNameEn,
     is_vip: formData.isVip,
     contract_status: formData.contractStatus,
-    ceo: formData.ceo,
-    business_number: formData.businessNumber,
-    industry: formData.industry,
-    founded_at: formData.foundedAt,
-    scale: formData.scale,
-    manager: formData.manager,
-    phone: formData.phone,
-    email: formData.email,
-    address: formData.address,
-    memo: formData.memo,
+    department: formData.department,
+    engineer: formData.engineer,
+    purpose: formData.purpose,
+    maintenance_status: formData.maintenanceStatus,
+    notes: formData.notes,
   }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -203,41 +183,39 @@ export async function deleteClient(id: string): Promise<void> {
   revalidatePath("/clients");
 }
 
-// ─── 히스토리 상세 편집 ────────────────────────────────────────────
+// ─── 담당자 CRUD ───────────────────────────────────────────────────
 
-export async function updateHistoryDetail(
-  detailId: string,
-  data: {
-    summary: string;
-    requestedAt: string;
-    dueDate: string;
-    members: string;
-    budget: string;
-    checkItems: { id: string; label: string; done: boolean }[];
-  }
-): Promise<void> {
+type ContactFormData = Omit<Contact, "id" | "sortOrder">;
+
+export async function addContact(clientId: string, data: ContactFormData): Promise<void> {
   const supabase = await createClient();
+  const { error } = await supabase.from("contacts").insert({
+    client_id: clientId,
+    name: data.name,
+    phone: data.phone,
+    email: data.email,
+    is_primary: data.isPrimary,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
 
-  const { error: detailError } = await supabase
-    .from("history_details")
-    .update({
-      summary: data.summary,
-      requested_at: data.requestedAt,
-      due_date: data.dueDate,
-      members: data.members,
-      budget: data.budget,
-    })
-    .eq("id", detailId);
+export async function updateContact(id: string, data: ContactFormData): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("contacts").update({
+    name: data.name,
+    phone: data.phone,
+    email: data.email,
+    is_primary: data.isPrimary,
+  }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
 
-  if (detailError) throw new Error(detailError.message);
-
-  for (const item of data.checkItems) {
-    await supabase
-      .from("check_items")
-      .update({ label: item.label, done: item.done })
-      .eq("id", item.id);
-  }
-
+export async function deleteContact(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("contacts").delete().eq("id", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/clients", "layout");
 }
 
@@ -249,11 +227,18 @@ export async function addProduct(clientId: string, data: ProductFormData): Promi
   const supabase = await createClient();
   const { error } = await supabase.from("products").insert({
     client_id: clientId,
+    sort_order: data.sortOrder,
     name: data.name,
     category: data.category,
-    unit_price: data.unitPrice,
-    quantity: data.quantity,
-    status: data.status,
+    model: data.model,
+    purpose: data.purpose,
+    serial_number: data.serialNumber,
+    firmware: data.firmware,
+    client_os: data.clientOs,
+    client_count: data.clientCount,
+    maintenance_start: data.maintenanceStart,
+    maintenance_end: data.maintenanceEnd,
+    maintenance_status: data.maintenanceStatus,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/clients", "layout");
@@ -262,11 +247,18 @@ export async function addProduct(clientId: string, data: ProductFormData): Promi
 export async function updateProduct(id: number, data: ProductFormData): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("products").update({
+    sort_order: data.sortOrder,
     name: data.name,
     category: data.category,
-    unit_price: data.unitPrice,
-    quantity: data.quantity,
-    status: data.status,
+    model: data.model,
+    purpose: data.purpose,
+    serial_number: data.serialNumber,
+    firmware: data.firmware,
+    client_os: data.clientOs,
+    client_count: data.clientCount,
+    maintenance_start: data.maintenanceStart,
+    maintenance_end: data.maintenanceEnd,
+    maintenance_status: data.maintenanceStatus,
   }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/clients", "layout");
@@ -281,7 +273,7 @@ export async function deleteProduct(id: number): Promise<void> {
 
 // ─── 히스토리 항목 CRUD ────────────────────────────────────────────
 
-type HistoryItemFormData = Pick<HistoryItem, "date" | "name" | "assignee" | "status" | "note">;
+type HistoryItemFormData = Pick<HistoryItem, "date" | "name" | "engineer" | "classification" | "status">;
 
 export async function addHistoryItem(clientId: string, data: HistoryItemFormData): Promise<void> {
   const supabase = await createClient();
@@ -289,9 +281,9 @@ export async function addHistoryItem(clientId: string, data: HistoryItemFormData
     client_id: clientId,
     date: data.date,
     name: data.name,
-    assignee: data.assignee,
+    engineer: data.engineer,
+    classification: data.classification,
     status: data.status,
-    note: data.note,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/clients", "layout");
@@ -302,9 +294,9 @@ export async function updateHistoryItem(id: string, data: HistoryItemFormData): 
   const { error } = await supabase.from("history_items").update({
     date: data.date,
     name: data.name,
-    assignee: data.assignee,
+    engineer: data.engineer,
+    classification: data.classification,
     status: data.status,
-    note: data.note,
   }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/clients", "layout");
@@ -313,6 +305,33 @@ export async function updateHistoryItem(id: string, data: HistoryItemFormData): 
 export async function deleteHistoryItem(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("history_items").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+// ─── 히스토리 상세 CRUD ────────────────────────────────────────────
+
+type HistoryDetailFormData = Omit<HistoryDetail, "id">;
+
+export async function upsertHistoryDetail(historyItemId: string, data: HistoryDetailFormData): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("history_details").upsert({
+    history_item_id: historyItemId,
+    author: data.author,
+    date: data.date,
+    classification: data.classification,
+    content: data.content,
+  }, { onConflict: "history_item_id" });
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+export async function deleteHistoryDetail(historyItemId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("history_details")
+    .delete()
+    .eq("history_item_id", historyItemId);
   if (error) throw new Error(error.message);
   revalidatePath("/clients", "layout");
 }
