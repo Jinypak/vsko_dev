@@ -2,15 +2,18 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useClients } from "@/lib/clients-context";
+import { ClientInfo } from "@/types/client";
 import { STATUS_STYLES } from "@/lib/utils";
 import AddClientDrawer from "@/components/AddClientDrawer";
 
 const CONTRACT_FILTERS = ["전체", "계약중", "협의중", "계약종료"] as const;
 type ContractFilter = (typeof CONTRACT_FILTERS)[number];
 
-export default function ClientListView() {
-  const { clients } = useClients();
+interface ClientListViewProps {
+  clients: ClientInfo[];
+}
+
+export default function ClientListView({ clients }: ClientListViewProps) {
   const [query, setQuery] = useState("");
   const [contractFilter, setContractFilter] = useState<ContractFilter>("전체");
   const [vipOnly, setVipOnly] = useState(false);
@@ -26,12 +29,9 @@ export default function ClientListView() {
         c.industry.toLowerCase().includes(q) ||
         c.manager.toLowerCase().includes(q) ||
         c.ceo.toLowerCase().includes(q);
-
       const matchContract =
         contractFilter === "전체" || c.contractStatus === contractFilter;
-
       const matchVip = !vipOnly || c.isVip;
-
       return matchQuery && matchContract && matchVip;
     });
   }, [clients, query, contractFilter, vipOnly]);
@@ -47,7 +47,6 @@ export default function ClientListView() {
   return (
     <>
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Page header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-medium text-gray-900">고객사</h1>
@@ -66,7 +65,7 @@ export default function ClientListView() {
           </button>
         </div>
 
-        {/* Search bar */}
+        {/* 검색 */}
         <div className="relative mb-4">
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none"
@@ -93,7 +92,7 @@ export default function ClientListView() {
           )}
         </div>
 
-        {/* Filter bar */}
+        {/* 필터 */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex gap-1.5">
             {CONTRACT_FILTERS.map((f) => (
@@ -122,7 +121,7 @@ export default function ClientListView() {
           </label>
         </div>
 
-        {/* Client table */}
+        {/* 테이블 */}
         {filtered.length === 0 ? (
           <div className="text-center py-20 text-gray-300">
             <svg className="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

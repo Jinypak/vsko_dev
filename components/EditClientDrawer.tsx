@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ClientInfo } from "@/types/client";
-import { useClients } from "@/lib/clients-context";
+import { updateClient } from "@/lib/actions/clients";
 
 type ContractStatus = ClientInfo["contractStatus"];
 
@@ -29,8 +29,6 @@ interface EditClientDrawerProps {
 }
 
 export default function EditClientDrawer({ client, onClose }: EditClientDrawerProps) {
-  const { updateClient } = useClients();
-
   const [form, setForm] = useState<FormData>({
     companyName: client.companyName,
     companyNameEn: client.companyNameEn,
@@ -47,6 +45,7 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
     address: client.address,
     memo: client.memo,
   });
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -58,16 +57,16 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateClient(client.id, form);
+    setSaving(true);
+    await updateClient(client.id, form);
     onClose();
   };
 
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-
       <div className="fixed right-0 top-0 h-full w-[480px] bg-white z-50 shadow-xl flex flex-col">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div>
@@ -87,27 +86,15 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
-            {/* 기본 정보 */}
             <section>
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-3">기본 정보</p>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="회사명 (국문)" required>
-                    <input
-                      name="companyName" required
-                      value={form.companyName} onChange={handleChange}
-                      placeholder="(주) 회사명"
-                      className={INPUT}
-                    />
+                    <input name="companyName" required value={form.companyName} onChange={handleChange} placeholder="(주) 회사명" className={INPUT} />
                   </Field>
                   <Field label="회사명 (영문)">
-                    <input
-                      name="companyNameEn"
-                      value={form.companyNameEn} onChange={handleChange}
-                      placeholder="Company Name"
-                      className={INPUT}
-                    />
+                    <input name="companyNameEn" value={form.companyNameEn} onChange={handleChange} placeholder="Company Name" className={INPUT} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -120,11 +107,7 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
                   </Field>
                   <Field label=" ">
                     <label className="flex items-center gap-2 cursor-pointer mt-1">
-                      <input
-                        type="checkbox" name="isVip"
-                        checked={form.isVip} onChange={handleChange}
-                        className="rounded border-gray-300 cursor-pointer"
-                      />
+                      <input type="checkbox" name="isVip" checked={form.isVip} onChange={handleChange} className="rounded border-gray-300 cursor-pointer" />
                       <span className="text-[12px] text-gray-700">VIP 고객사</span>
                     </label>
                   </Field>
@@ -132,7 +115,6 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
               </div>
             </section>
 
-            {/* 담당자 정보 */}
             <section>
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-3">담당자 정보</p>
               <div className="space-y-3">
@@ -141,12 +123,7 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
                     <input name="ceo" value={form.ceo} onChange={handleChange} placeholder="홍길동" className={INPUT} />
                   </Field>
                   <Field label="담당자" required>
-                    <input
-                      name="manager" required
-                      value={form.manager} onChange={handleChange}
-                      placeholder="김담당 매니저"
-                      className={INPUT}
-                    />
+                    <input name="manager" required value={form.manager} onChange={handleChange} placeholder="김담당 매니저" className={INPUT} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -160,7 +137,6 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
               </div>
             </section>
 
-            {/* 사업 정보 */}
             <section>
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-3">사업 정보</p>
               <div className="space-y-3">
@@ -186,30 +162,18 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
               </div>
             </section>
 
-            {/* 메모 */}
             <section>
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-3">메모</p>
-              <textarea
-                name="memo" rows={3}
-                value={form.memo} onChange={handleChange}
-                placeholder="특이사항이나 메모를 입력하세요."
-                className={`${INPUT} resize-none`}
-              />
+              <textarea name="memo" rows={3} value={form.memo} onChange={handleChange} placeholder="특이사항이나 메모를 입력하세요." className={`${INPUT} resize-none`} />
             </section>
           </div>
 
           <div className="shrink-0 border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-2 bg-white">
-            <button
-              type="button" onClick={onClose}
-              className="text-sm border border-gray-200 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+            <button type="button" onClick={onClose} className="text-sm border border-gray-200 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
               취소
             </button>
-            <button
-              type="submit"
-              className="text-sm bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              저장하기
+            <button type="submit" disabled={saving} className="text-sm bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50">
+              {saving ? "저장 중..." : "저장하기"}
             </button>
           </div>
         </form>
@@ -220,20 +184,11 @@ export default function EditClientDrawer({ client, onClose }: EditClientDrawerPr
 
 const INPUT = "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder:text-gray-300 bg-white";
 
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-[11px] text-gray-400 mb-1.5">
-        {label}
-        {required && <span className="text-red-400 ml-0.5">*</span>}
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
     </div>

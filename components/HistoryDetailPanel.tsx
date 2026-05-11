@@ -3,18 +3,17 @@
 import { useState } from "react";
 import { HistoryDetail, CheckItem } from "@/types/client";
 import { FILE_ICON } from "@/lib/utils";
+import { updateHistoryDetail } from "@/lib/actions/clients";
 
 interface HistoryDetailPanelProps {
   detail: HistoryDetail;
   onClose: () => void;
 }
 
-export default function HistoryDetailPanel({
-  detail,
-  onClose,
-}: HistoryDetailPanelProps) {
+export default function HistoryDetailPanel({ detail, onClose }: HistoryDetailPanelProps) {
   const [checks, setChecks] = useState<CheckItem[]>(detail.checkItems);
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [draft, setDraft] = useState({
     summary: detail.summary,
@@ -45,7 +44,18 @@ export default function HistoryDetailPanel({
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true);
+    if (detail.id) {
+      await updateHistoryDetail(detail.id, {
+        summary: draft.summary,
+        requestedAt: draft.requestedAt,
+        dueDate: draft.dueDate,
+        members: draft.members,
+        budget: draft.budget,
+        checkItems: draft.checks,
+      });
+    }
     setSaved({
       summary: draft.summary,
       requestedAt: draft.requestedAt,
@@ -54,12 +64,11 @@ export default function HistoryDetailPanel({
       budget: draft.budget,
     });
     setChecks(draft.checks);
+    setSaving(false);
     setIsEditing(false);
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-  };
+  const handleCancel = () => setIsEditing(false);
 
   const toggleCheck = (id: string) => {
     if (isEditing) {
@@ -106,9 +115,7 @@ export default function HistoryDetailPanel({
                 {isEditing ? (
                   <input
                     value={draft[field] as string}
-                    onChange={(e) =>
-                      setDraft((prev) => ({ ...prev, [field]: e.target.value }))
-                    }
+                    onChange={(e) => setDraft((prev) => ({ ...prev, [field]: e.target.value }))}
                     className="w-full text-[12px] text-gray-700 border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:border-gray-400 bg-white"
                   />
                 ) : (
@@ -145,11 +152,7 @@ export default function HistoryDetailPanel({
                     className="flex-1 text-[12px] text-gray-700 border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:border-gray-400 bg-white"
                   />
                 ) : (
-                  <span
-                    className={`text-[12px] ${
-                      item.done ? "line-through text-gray-400" : "text-gray-700"
-                    }`}
-                  >
+                  <span className={`text-[12px] ${item.done ? "line-through text-gray-400" : "text-gray-700"}`}>
                     {item.label}
                   </span>
                 )}
@@ -182,9 +185,10 @@ export default function HistoryDetailPanel({
             <>
               <button
                 onClick={handleSave}
-                className="text-[11px] px-2.5 py-1 border border-gray-800 rounded-md bg-gray-900 text-white transition-colors"
+                disabled={saving}
+                className="text-[11px] px-2.5 py-1 border border-gray-800 rounded-md bg-gray-900 text-white transition-colors disabled:opacity-50"
               >
-                저장
+                {saving ? "저장 중..." : "저장"}
               </button>
               <button
                 onClick={handleCancel}
@@ -202,11 +206,7 @@ export default function HistoryDetailPanel({
                 편집
               </button>
               {["댓글 달기", "복제"].map((label) => (
-                <button
-                  key={label}
-                  className="text-[11px] px-2.5 py-1 border border-gray-100 rounded-md text-gray-300 cursor-not-allowed"
-                  disabled
-                >
+                <button key={label} disabled className="text-[11px] px-2.5 py-1 border border-gray-100 rounded-md text-gray-300 cursor-not-allowed">
                   {label}
                 </button>
               ))}

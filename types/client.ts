@@ -29,6 +29,7 @@ export interface AttachedFile {
 }
 
 export interface HistoryDetail {
+  id?: string;
   summary: string;
   requestedAt: string;
   dueDate: string;
