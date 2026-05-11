@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -15,43 +16,20 @@ export default function LoginForm() {
     setError(null);
     setLoading(true);
 
-    // 1. 로컬 어드민 계정 시도
-    const localRes = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
-    if (localRes.ok) {
-      router.push("/clients");
-      router.refresh();
+    if (authError) {
+      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      setLoading(false);
       return;
     }
 
-    // 2. Supabase Auth fallback (환경변수가 설정된 경우)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const { createBrowserClient } = await import("@supabase/ssr");
-        const supabase = createBrowserClient(supabaseUrl, supabaseKey);
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (!authError) {
-          router.push("/clients");
-          router.refresh();
-          return;
-        }
-      } catch {
-        // Supabase 미설정 시 무시
-      }
-    }
-
-    setError("이메일 또는 비밀번호가 올바르지 않습니다.");
-    setLoading(false);
+    router.push("/clients");
+    router.refresh();
   };
 
   return (
@@ -63,7 +41,7 @@ export default function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          placeholder="admin@visionsquare.com"
+          placeholder="email@company.kr"
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder:text-gray-300"
         />
       </div>

@@ -50,8 +50,8 @@ export default async function ClientPage({
       </div>
 
       <ClientInfoCard client={client} />
-      <ProductTable products={client.products} />
-      <HistoryTable history={client.history} />
+      <ProductTable products={client.products} clientId={client.id} />
+      <HistoryTable history={client.history} clientId={client.id} />
     </div>
   );
 }

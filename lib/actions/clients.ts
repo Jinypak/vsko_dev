@@ -240,3 +240,79 @@ export async function updateHistoryDetail(
 
   revalidatePath("/clients", "layout");
 }
+
+// ─── 제품 CRUD ─────────────────────────────────────────────────────
+
+type ProductFormData = Omit<Product, "id">;
+
+export async function addProduct(clientId: string, data: ProductFormData): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("products").insert({
+    client_id: clientId,
+    name: data.name,
+    category: data.category,
+    unit_price: data.unitPrice,
+    quantity: data.quantity,
+    status: data.status,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+export async function updateProduct(id: number, data: ProductFormData): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("products").update({
+    name: data.name,
+    category: data.category,
+    unit_price: data.unitPrice,
+    quantity: data.quantity,
+    status: data.status,
+  }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+// ─── 히스토리 항목 CRUD ────────────────────────────────────────────
+
+type HistoryItemFormData = Pick<HistoryItem, "date" | "name" | "assignee" | "status" | "note">;
+
+export async function addHistoryItem(clientId: string, data: HistoryItemFormData): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("history_items").insert({
+    client_id: clientId,
+    date: data.date,
+    name: data.name,
+    assignee: data.assignee,
+    status: data.status,
+    note: data.note,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+export async function updateHistoryItem(id: string, data: HistoryItemFormData): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("history_items").update({
+    date: data.date,
+    name: data.name,
+    assignee: data.assignee,
+    status: data.status,
+    note: data.note,
+  }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
+
+export async function deleteHistoryItem(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("history_items").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/clients", "layout");
+}
