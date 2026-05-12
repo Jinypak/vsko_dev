@@ -25,10 +25,10 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-6 h-6 bg-foreground rounded-md flex items-center justify-center shrink-0">
-            <span className="text-background text-[10px] font-semibold leading-none">C</span>
+            <span className="text-background text-[10px] font-semibold leading-none">LOGO</span>
           </div>
           <span className="text-sm font-medium text-foreground group-hover:text-muted-foreground transition-colors">
-            ClientOS
+            VISION SQUARE
           </span>
         </Link>
 

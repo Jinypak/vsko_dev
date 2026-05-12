@@ -76,10 +76,10 @@ export default function ContactPage() {
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors text-gray-600 bg-white"
             >
               <option value="">선택해주세요</option>
-              <option value="general">일반 문의</option>
-              <option value="bug">버그 신고</option>
-              <option value="feature">기능 요청</option>
-              <option value="billing">결제 / 계정</option>
+              <option value="sales">도입 문의</option>
+              <option value="qna">기술 문의</option>
+              <option value="support">지원 요청</option>
+              <option value="etc">기타</option>
             </select>
           </div>
 
@@ -104,9 +104,9 @@ export default function ContactPage() {
         {/* Info */}
         <div className="space-y-5">
           {[
-            { icon: "📧", label: "이메일", value: "help@clientos.kr" },
+            { icon: "📧", label: "이메일", value: "easy@vsko.co.kr" },
             { icon: "💬", label: "응답 시간", value: "평일 기준 24시간 이내" },
-            { icon: "📞", label: "전화", value: "02-1234-5678" },
+            { icon: "📞", label: "전화", value: "010-4722-3360" },
           ].map((item) => (
             <div key={item.label} className="flex items-start gap-3">
               <span className="text-xl">{item.icon}</span>

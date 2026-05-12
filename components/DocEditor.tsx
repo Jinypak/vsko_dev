@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -21,9 +22,75 @@ import {
   Quote, Code, Minus,
   AlignLeft, AlignCenter, AlignRight,
   ImageIcon, Link2, Undo, Redo,
-  Save, Check,
+  Save, Check, Palette,
 } from "lucide-react";
 
+// ── 컬러 박스 색상 정의 ─────────────────────────────────────────────────────
+const CALLOUT_COLORS = {
+  blue:   { swatch: "#3b82f6", bg: "#eff6ff", border: "#3b82f6", fg: "#1e3a5f" },
+  green:  { swatch: "#22c55e", bg: "#f0fdf4", border: "#22c55e", fg: "#14532d" },
+  yellow: { swatch: "#eab308", bg: "#fefce8", border: "#eab308", fg: "#713f12" },
+  red:    { swatch: "#ef4444", bg: "#fef2f2", border: "#ef4444", fg: "#7f1d1d" },
+  purple: { swatch: "#a855f7", bg: "#faf5ff", border: "#a855f7", fg: "#4a044e" },
+  gray:   { swatch: "#6b7280", bg: "#f9fafb", border: "#6b7280", fg: "#111827" },
+} as const;
+
+type CalloutColor = keyof typeof CALLOUT_COLORS;
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    callout: { insertCallout: (color: CalloutColor) => ReturnType };
+  }
+}
+
+// ── Callout 커스텀 노드 ───────────────────────────────────────────────────────
+const CalloutNode = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return { color: { default: "blue" } };
+  },
+
+  parseHTML() {
+    return [{
+      tag: "div[data-callout]",
+      getAttrs: (el) => ({ color: (el as HTMLElement).dataset.callout ?? "blue" }),
+    }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    const color = (node.attrs.color as CalloutColor) in CALLOUT_COLORS
+      ? (node.attrs.color as CalloutColor)
+      : "blue";
+    const c = CALLOUT_COLORS[color];
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-callout": color,
+        style: `background:${c.bg};border-left:4px solid ${c.border};color:${c.fg};padding:0.75rem 1rem;border-radius:0.375rem;margin:0.5rem 0`,
+      }),
+      0,
+    ];
+  },
+
+  addCommands() {
+    return {
+      insertCallout:
+        (color: CalloutColor) =>
+        ({ commands }) =>
+          commands.insertContent({
+            type: this.name,
+            attrs: { color },
+            content: [{ type: "paragraph" }],
+          }),
+    };
+  },
+});
+
+// ── 컴포넌트 ─────────────────────────────────────────────────────────────────
 interface DocEditorProps {
   slug: string;
   title: string;
@@ -34,10 +101,24 @@ export default function DocEditor({ slug, title, initialContent }: DocEditorProp
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showCalloutPicker, setShowCalloutPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const calloutPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showCalloutPicker) return;
+    const close = (e: MouseEvent) => {
+      if (!calloutPickerRef.current?.contains(e.target as Node)) {
+        setShowCalloutPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [showCalloutPicker]);
 
   const editor = useEditor({
     immediatelyRender: false,
+    enableInputRules: false,
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
@@ -45,14 +126,19 @@ export default function DocEditor({ slug, title, initialContent }: DocEditorProp
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline underline-offset-2" } }),
       Image.configure({ HTMLAttributes: { class: "rounded-lg max-w-full my-2" } }),
-      Placeholder.configure({ placeholder: "내용을 입력하세요... ('/' 입력 시 블록 선택)" }),
+      Placeholder.configure({ placeholder: "내용을 입력하세요..." }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      CalloutNode,
     ],
     content: initialContent || "",
     editorProps: {
       attributes: {
         class: "prose prose-sm prose-neutral max-w-none focus:outline-none min-h-[60vh] px-1",
+        spellcheck: "false",
+        autocomplete: "off",
+        autocorrect: "off",
+        autocapitalize: "off",
       },
     },
   });
@@ -196,6 +282,36 @@ export default function DocEditor({ slug, title, initialContent }: DocEditorProp
             <ImageIcon className="size-3.5" />
           </Button>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+
+          {/* 컬러 박스 */}
+          <div className="relative" ref={calloutPickerRef}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className={tb(editor.isActive("callout"))}
+              onClick={() => setShowCalloutPicker((v) => !v)}
+              title="색상 박스 삽입"
+            >
+              <Palette className="size-3.5" />
+            </Button>
+            {showCalloutPicker && (
+              <div className="absolute top-full left-0 mt-1.5 p-2 bg-popover border rounded-lg shadow-md z-50 flex gap-1.5">
+                {(Object.keys(CALLOUT_COLORS) as CalloutColor[]).map((key) => (
+                  <button
+                    key={key}
+                    className="w-5 h-5 rounded-full border-2 border-white shadow-sm hover:scale-110 transition-transform cursor-pointer"
+                    style={{ background: CALLOUT_COLORS[key].swatch }}
+                    title={key}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      editor.chain().focus().insertCallout(key).run();
+                      setShowCalloutPicker(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* 저장 버튼 */}
           <div className="ml-auto">
