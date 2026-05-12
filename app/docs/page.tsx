@@ -1,69 +1,135 @@
-const DOCS = [
+"use client";
+
+import { useState } from "react";
+import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+
+const SUB_ITEMS = [
+  { title: "버전 리스트", desc: "출시된 모든 버전 목록과 릴리즈 날짜를 확인합니다." },
+  { title: "버전 별 특징", desc: "각 버전의 주요 변경사항과 개선 내용을 설명합니다." },
+];
+
+const ISSUE_ITEMS = [
+  { title: "QnA", desc: "자주 묻는 질문과 답변을 정리한 페이지입니다." },
+  { title: "버그", desc: "알려진 버그 목록과 임시 해결방법을 안내합니다." },
+];
+
+const FIRMWARE_ITEMS = [
+  { title: "펌웨어 리스트 (FIPS)", desc: "FIPS 인증 펌웨어 버전 목록을 제공합니다." },
+  { title: "버전 별 특징", desc: "펌웨어 버전별 기능 변경사항을 설명합니다." },
+];
+
+const DOCS: {
+  product: string;
+  badge?: string;
+  subcategories: { name: string; items: { title: string; desc: string }[] }[];
+}[] = [
   {
-    category: "시작하기",
-    items: [
-      { title: "ClientOS 소개", desc: "시스템 개요와 주요 기능을 안내합니다.", badge: "필독" },
-      { title: "빠른 시작 가이드", desc: "처음 시작하는 분들을 위한 단계별 안내입니다." },
-      { title: "권한 및 역할 설정", desc: "사용자 권한과 역할을 설정하는 방법을 설명합니다." },
+    product: "Luna",
+    badge: "주력 제품",
+    subcategories: [
+      {
+        name: "Luna Client",
+        items: SUB_ITEMS,
+      },
+      {
+        name: "Firmware",
+        items: FIRMWARE_ITEMS,
+      },
+      {
+        name: "이슈사항",
+        items: ISSUE_ITEMS,
+      },
     ],
   },
   {
-    category: "고객사 관리",
-    items: [
-      { title: "고객사 등록 방법", desc: "새로운 고객사를 등록하는 절차를 안내합니다." },
-      { title: "정보 수정 및 삭제", desc: "등록된 고객사 정보를 수정하거나 삭제하는 방법입니다." },
-      { title: "VIP 고객사 지정", desc: "VIP 고객사 지정 기준과 혜택을 설명합니다." },
-    ],
-  },
-  {
-    category: "작업 & 히스토리",
-    items: [
-      { title: "작업 기록 남기기", desc: "작업 히스토리를 기록하고 관리하는 방법입니다." },
-      { title: "파일 첨부 가이드", desc: "작업에 파일을 첨부하는 방법과 지원 형식을 안내합니다." },
-      { title: "체크리스트 활용", desc: "작업 체크리스트를 효율적으로 활용하는 팁입니다." },
+    product: "PSE",
+    subcategories: [
+      {
+        name: "PTK",
+        items: SUB_ITEMS,
+      },
+      {
+        name: "Firmware",
+        items: FIRMWARE_ITEMS,
+      },
+      {
+        name: "이슈사항",
+        items: ISSUE_ITEMS,
+      },
     ],
   },
 ];
 
 export default function DocsPage() {
+  const [activeProduct, setActiveProduct] = useState(DOCS[0].product);
+
+  const current = DOCS.find((d) => d.product === activeProduct)!;
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
+      {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-xl font-medium text-gray-900 mb-1">문서</h1>
-        <p className="text-[13px] text-gray-400">
-          ClientOS 사용 방법과 가이드를 확인하세요.
+        <h1 className="text-xl font-semibold text-foreground mb-1">문서</h1>
+        <p className="text-sm text-muted-foreground">
+          제품별 클라이언트, 펌웨어, 이슈사항 문서를 확인하세요.
         </p>
       </div>
 
+      {/* 제품 탭 */}
+      <div className="flex items-center gap-2 mb-8">
+        {DOCS.map((d) => (
+          <Button
+            key={d.product}
+            variant={activeProduct === d.product ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveProduct(d.product)}
+            className="gap-2"
+          >
+            {d.product}
+            {d.badge && (
+              <Badge
+                variant="secondary"
+                className={`text-[10px] h-4 px-1.5 ${
+                  activeProduct === d.product
+                    ? "bg-white/20 text-white border-0"
+                    : ""
+                }`}
+              >
+                {d.badge}
+              </Badge>
+            )}
+          </Button>
+        ))}
+      </div>
+
+      <Separator className="mb-8" />
+
+      {/* 서브카테고리 목록 */}
       <div className="space-y-8">
-        {DOCS.map((section) => (
-          <div key={section.category}>
-            <h2 className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-3">
-              {section.category}
+        {current.subcategories.map((sub) => (
+          <div key={sub.name}>
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
+              {current.product} · {sub.name}
             </h2>
-            <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-              {section.items.map((item) => (
+            <div className="divide-y border rounded-xl overflow-hidden">
+              {sub.items.map((item, idx) => (
                 <button
                   key={item.title}
-                  className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left group"
+                  className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/50 transition-colors text-left group"
                 >
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm text-gray-800">{item.title}</span>
-                      {"badge" in item && item.badge && (
-                        <span className="text-[10px] bg-blue-50 text-blue-500 border border-blue-100 rounded px-1.5 py-0.5">
-                          {item.badge}
-                        </span>
-                      )}
+                  <div className="flex items-start gap-3">
+                    <span className="text-xs text-muted-foreground/50 font-mono w-4 shrink-0 mt-0.5">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-0.5">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
-                    <p className="text-[12px] text-gray-400">{item.desc}</p>
                   </div>
-                  <svg
-                    className="w-4 h-4 text-gray-200 group-hover:text-gray-400 transition-colors shrink-0 ml-4"
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ChevronRight className="size-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors shrink-0 ml-4" />
                 </button>
               ))}
             </div>
