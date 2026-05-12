@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
+import HeaderWrapper from "@/components/HeaderWrapper";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "비전스퀘어 | VISION SQUARE",
@@ -14,8 +21,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className="antialiased bg-white">
-        <Header />
+      <body className={`${plusJakartaSans.variable} antialiased bg-background`}>
+        <HeaderWrapper />
         <main>{children}</main>
       </body>
     </html>
