@@ -37,6 +37,7 @@ export default function DocEditor({ slug, title, initialContent }: DocEditorProp
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
