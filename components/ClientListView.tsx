@@ -2,12 +2,29 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { Plus, Search, X } from "lucide-react";
 import { ClientInfo } from "@/types/client";
-import { STATUS_STYLES } from "@/lib/utils";
 import AddClientDrawer from "@/components/AddClientDrawer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const CONTRACT_FILTERS = ["전체", "계약중", "협의중", "계약종료"] as const;
 type ContractFilter = (typeof CONTRACT_FILTERS)[number];
+
+const CONTRACT_BADGE: Record<string, { variant: "default" | "secondary" | "outline"; className: string }> = {
+  계약중:   { variant: "outline", className: "border-blue-300 text-blue-600 bg-blue-50" },
+  협의중:   { variant: "outline", className: "border-amber-300 text-amber-600 bg-amber-50" },
+  계약종료: { variant: "outline", className: "border-gray-300 text-gray-500 bg-gray-50" },
+};
 
 interface ClientListViewProps {
   clients: ClientInfo[];
@@ -47,47 +64,35 @@ export default function ClientListView({ clients }: ClientListViewProps) {
   return (
     <>
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-medium text-gray-900">고객사</h1>
-            <p className="text-[12px] text-gray-400 mt-0.5">
+            <h1 className="text-xl font-semibold text-foreground">고객사</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
               총 {clients.length}개 · 검색 결과 {filtered.length}개
             </p>
           </div>
-          <button
-            onClick={() => setShowDrawer(true)}
-            className="bg-gray-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1.5"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+          <Button onClick={() => setShowDrawer(true)}>
+            <Plus className="size-4" />
             고객사 추가
-          </button>
+          </Button>
         </div>
 
         {/* 검색 */}
         <div className="relative mb-4">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-          </svg>
-          <input
-            type="text"
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="회사명, 부서, 담당 엔지니어로 검색..."
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 transition-colors placeholder:text-gray-300"
+            className="pl-9 pr-9"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="size-4" />
             </button>
           )}
         </div>
@@ -96,26 +101,24 @@ export default function ClientListView({ clients }: ClientListViewProps) {
         <div className="flex items-center justify-between mb-5">
           <div className="flex gap-1.5">
             {CONTRACT_FILTERS.map((f) => (
-              <button
+              <Button
                 key={f}
+                size="sm"
+                variant={contractFilter === f ? "default" : "outline"}
+                className="rounded-full h-7 text-xs px-3"
                 onClick={() => setContractFilter(f)}
-                className={`text-[12px] px-3 py-1 rounded-full border transition-colors ${
-                  contractFilter === f
-                    ? "border-gray-800 bg-gray-900 text-white"
-                    : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                }`}
               >
                 {f}
                 <span className="ml-1 opacity-60">{contractCounts[f] ?? 0}</span>
-              </button>
+              </Button>
             ))}
           </div>
-          <label className="flex items-center gap-1.5 cursor-pointer text-[12px] text-gray-500">
+          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={vipOnly}
               onChange={(e) => setVipOnly(e.target.checked)}
-              className="rounded border-gray-300 text-gray-800 cursor-pointer"
+              className="rounded border-input"
             />
             VIP만 보기
           </label>
@@ -123,76 +126,72 @@ export default function ClientListView({ clients }: ClientListViewProps) {
 
         {/* 테이블 */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 text-gray-300">
-            <svg className="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="text-center py-20 text-muted-foreground">
+            <Search className="size-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">검색 결과가 없습니다.</p>
           </div>
         ) : (
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2">고객사</th>
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-28">부서</th>
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">엔지니어</th>
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-20">상태</th>
-                <th className="text-left text-[11px] text-gray-400 font-medium px-2.5 py-2 w-24">등록일</th>
-                <th className="w-10" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((client) => (
-                <tr
-                  key={client.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors group"
-                >
-                  <td className="px-2.5 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-500 shrink-0">
-                        {client.companyName.replace(/[^가-힣a-zA-Z]/g, "")[0] ?? "?"}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-800">{client.companyName}</span>
-                          {client.isVip && (
-                            <span className="text-[10px] border border-amber-300 text-amber-500 rounded-full px-1.5 py-0.5 leading-none">
-                              VIP
-                            </span>
-                          )}
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>고객사</TableHead>
+                  <TableHead className="w-28">부서</TableHead>
+                  <TableHead className="w-24">엔지니어</TableHead>
+                  <TableHead className="w-24">상태</TableHead>
+                  <TableHead className="w-24">등록일</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground shrink-0">
+                          {client.companyName.replace(/[^가-힣a-zA-Z]/g, "")[0] ?? "?"}
                         </div>
-                        <p className="text-[11px] text-gray-400">{client.companyNameEn}</p>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-sm text-foreground">{client.companyName}</span>
+                            {client.isVip && (
+                              <Badge variant="outline" className="border-amber-300 text-amber-600 bg-amber-50 text-[10px] h-4 px-1.5">
+                                VIP
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{client.companyNameEn}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-2.5 py-3 text-gray-500">{client.department}</td>
-                  <td className="px-2.5 py-3 text-gray-500">{client.engineer}</td>
-                  <td className="px-2.5 py-3">
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[
-                      client.contractStatus === "계약중" ? "진행중"
-                      : client.contractStatus === "계약종료" ? "완료"
-                      : "계획중"
-                    ]}`}>
-                      {client.contractStatus}
-                    </span>
-                  </td>
-                  <td className="px-2.5 py-3 text-gray-400 text-[12px]">{client.registeredAt}</td>
-                  <td className="px-2.5 py-3 text-right">
-                    <Link
-                      href={`/clients/${client.id}`}
-                      className="text-[11px] text-gray-300 group-hover:text-gray-500 transition-colors"
-                    >
-                      →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{client.department}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{client.engineer}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={CONTRACT_BADGE[client.contractStatus]?.className ?? "border-gray-300 text-gray-500"}
+                      >
+                        {client.contractStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{client.registeredAt}</TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        href={`/clients/${client.id}`}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        →
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
-      {showDrawer && <AddClientDrawer onClose={() => setShowDrawer(false)} />}
+      <AddClientDrawer open={showDrawer} onClose={() => setShowDrawer(false)} />
     </>
   );
 }
