@@ -108,7 +108,7 @@ export default function DocEditor({ slug, title, initialContent }: DocEditorProp
   useEffect(() => {
     if (!showCalloutPicker) return;
     const close = (e: MouseEvent) => {
-      if (!calloutPickerRef.current?.contains(e.target as Node)) {
+      if (e.target instanceof globalThis.Node && !calloutPickerRef.current?.contains(e.target)) {
         setShowCalloutPicker(false);
       }
     };
