@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 import {
   ClientInfo, Contact, Product, HistoryItem, HistoryDetail,
   MaintenanceStatus, ProductCategory, HistoryClassification, StatusType,

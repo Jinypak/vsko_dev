@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Product, MaintenanceStatus, ProductCategory } from "@/types/client";
-import SectionHeader from "@/components/ui/SectionHeader";
 import { addProduct, updateProduct, deleteProduct } from "@/lib/actions/clients";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +79,13 @@ export default function ProductTable({ products, clientId }: ProductTableProps) 
 
   return (
     <div className="mb-8">
-      <SectionHeader num="01" title="제품 상세" sub="· 납품 제품 목록" />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold bg-foreground text-background rounded px-1.5 py-0.5 leading-none">01</span>
+          <span className="text-sm font-medium text-foreground">제품 상세</span>
+          <span className="text-xs text-muted-foreground">납품 제품 목록</span>
+        </div>
+      </div>
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-xs min-w-[900px]">

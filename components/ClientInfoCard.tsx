@@ -1,30 +1,7 @@
 "use client";
 
 import { ClientInfo } from "@/types/client";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-const MAINTENANCE_BADGE: Record<string, string> = {
-  진행중:   "border-blue-300 text-blue-600 bg-blue-50",
-  완료:     "border-green-300 text-green-600 bg-green-50",
-  중단:     "border-red-300 text-red-500 bg-red-50",
-  해당없음: "border-gray-200 text-gray-400 bg-gray-50",
-};
-
-const CONTRACT_BADGE: Record<string, string> = {
-  계약중:   "border-blue-300 text-blue-600 bg-blue-50",
-  협의중:   "border-amber-300 text-amber-600 bg-amber-50",
-  계약종료: "border-gray-300 text-gray-500 bg-gray-50",
-};
 
 interface ClientInfoCardProps {
   client: ClientInfo;
@@ -32,86 +9,82 @@ interface ClientInfoCardProps {
 
 export default function ClientInfoCard({ client }: ClientInfoCardProps) {
   return (
-    <Card className="mb-6 gap-0 py-0">
-      <CardHeader className="px-6 py-4 border-b">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">{client.companyName}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{client.companyNameEn}</p>
-          </div>
-          <div className="flex gap-1.5 flex-wrap justify-end">
-            {client.isVip && (
-              <Badge variant="outline" className="border-amber-300 text-amber-600 bg-amber-50">VIP</Badge>
-            )}
-            <Badge variant="outline" className={CONTRACT_BADGE[client.contractStatus] ?? "border-gray-300 text-gray-500"}>
-              {client.contractStatus}
-            </Badge>
-            <Badge variant="outline" className={MAINTENANCE_BADGE[client.maintenanceStatus] ?? MAINTENANCE_BADGE["해당없음"]}>
-              유지보수 {client.maintenanceStatus}
-            </Badge>
-          </div>
+    <div className="p-5 space-y-5">
+      {/* 기본 정보 */}
+      <section>
+        <SectionTitle>기본 정보</SectionTitle>
+        <div className="space-y-2.5">
+          <InfoRow label="부서" value={client.department} />
+          <InfoRow label="담당 엔지니어" value={client.engineer} />
+          <InfoRow label="용도" value={client.purpose} />
+          <InfoRow label="등록일" value={client.registeredAt} />
         </div>
-      </CardHeader>
+      </section>
 
-      <CardContent className="py-4 px-6">
-        <div className="grid grid-cols-2 gap-6">
-          {/* 좌측 — 기본 정보 */}
+      <Separator />
+
+      {/* 담당자 */}
+      <section>
+        <SectionTitle>담당자</SectionTitle>
+        {client.contacts.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground/50">등록된 담당자 없음</p>
+        ) : (
           <div className="space-y-2">
-            <Row label="부서" value={client.department} />
-            <Row label="담당 엔지니어" value={client.engineer} />
-            <Row label="용도" value={client.purpose} />
-            <Row label="등록일" value={client.registeredAt} />
-            {client.notes && (
-              <div className="pt-3">
-                <Separator className="mb-3" />
-                <p className="text-xs text-muted-foreground mb-1">특이사항</p>
-                <p className="text-xs text-foreground whitespace-pre-wrap">{client.notes}</p>
+            {client.contacts.map((c) => (
+              <div key={c.id} className="rounded-md border p-2.5 space-y-1 bg-muted/20">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-semibold text-muted-foreground shrink-0">
+                    {c.name[0]}
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{c.name}</span>
+                  {c.isPrimary && (
+                    <span className="text-[9px] bg-blue-50 text-blue-500 border border-blue-200 rounded px-1 leading-none py-0.5">
+                      주담당
+                    </span>
+                  )}
+                </div>
+                {c.phone && (
+                  <p className="text-[11px] text-muted-foreground pl-6.5">{c.phone}</p>
+                )}
+                {c.email && (
+                  <p className="text-[11px] text-muted-foreground pl-6.5 truncate">{c.email}</p>
+                )}
               </div>
-            )}
+            ))}
           </div>
+        )}
+      </section>
 
-          {/* 우측 — 담당자 목록 */}
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">담당자</p>
-            {client.contacts.length === 0 ? (
-              <p className="text-xs text-muted-foreground/50">등록된 담당자가 없습니다.</p>
-            ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="h-8 text-[10px]">이름</TableHead>
-                      <TableHead className="h-8 text-[10px]">연락처</TableHead>
-                      <TableHead className="h-8 text-[10px]">이메일</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {client.contacts.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="py-1.5 text-xs text-foreground">
-                          {c.name}
-                          {c.isPrimary && <span className="ml-1 text-[10px] text-blue-400">주</span>}
-                        </TableCell>
-                        <TableCell className="py-1.5 text-xs text-muted-foreground">{c.phone}</TableCell>
-                        <TableCell className="py-1.5 text-xs text-muted-foreground">{c.email}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      {client.notes && (
+        <>
+          <Separator />
+          <section>
+            <SectionTitle>특이사항</SectionTitle>
+            <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">
+              {client.notes}
+            </p>
+          </section>
+        </>
+      )}
+    </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="text-xs text-muted-foreground w-24 shrink-0">{label}</span>
-      <span className="text-xs text-foreground">{value || "—"}</span>
+    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+      {children}
+    </p>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-[10px] text-muted-foreground w-[72px] shrink-0 mt-0.5 leading-tight">
+        {label}
+      </span>
+      <span className="text-[11px] text-foreground">{value || "—"}</span>
     </div>
   );
 }

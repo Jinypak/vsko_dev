@@ -4,7 +4,6 @@ import { Fragment, useState } from "react";
 import { Plus, ChevronDown } from "lucide-react";
 import { HistoryItem, HistoryClassification } from "@/types/client";
 import StatusBadge from "@/components/ui/StatusBadge";
-import SectionHeader from "@/components/ui/SectionHeader";
 import HistoryDetailPanel from "@/components/HistoryDetailPanel";
 import { addHistoryItem, updateHistoryItem, deleteHistoryItem } from "@/lib/actions/clients";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +72,11 @@ export default function HistoryTable({ history, clientId }: HistoryTableProps) {
 
   return (
     <div>
-      <SectionHeader num="02" title="작업 히스토리" sub="· 클릭하여 상세보기" />
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[10px] font-semibold bg-foreground text-background rounded px-1.5 py-0.5 leading-none">02</span>
+        <span className="text-sm font-medium text-foreground">작업 히스토리</span>
+        <span className="text-xs text-muted-foreground">클릭하여 상세보기</span>
+      </div>
 
       <div className="rounded-lg border overflow-hidden">
         <table className="w-full text-xs">

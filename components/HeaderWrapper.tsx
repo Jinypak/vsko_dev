@@ -1,13 +1,11 @@
-"use client";
-
-import { usePathname } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
 import Header from "@/components/Header";
 
-const HIDDEN_PATHS = ["/login", "/dashboard"];
+export default async function HeaderWrapper() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function HeaderWrapper() {
-  const pathname = usePathname();
-  const hidden = HIDDEN_PATHS.some((p) => pathname.startsWith(p));
-  if (hidden) return null;
-  return <Header />;
+  return <Header user={user} />;
 }
