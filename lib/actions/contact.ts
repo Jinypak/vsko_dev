@@ -2,8 +2,6 @@
 
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const SUBJECT_LABELS: Record<string, string> = {
   sales:   "도입 문의",
   qna:     "기술 문의",
@@ -20,6 +18,12 @@ export async function sendContactEmail(formData: FormData) {
   if (!name || !email || !subject || !message) {
     return { success: false, error: "모든 항목을 입력해주세요." };
   }
+
+  if (!process.env.RESEND_API_KEY) {
+    return { success: false, error: "메일 서비스가 설정되지 않았습니다." };
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const subjectLabel = SUBJECT_LABELS[subject] ?? subject;
 
